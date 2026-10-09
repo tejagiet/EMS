@@ -663,7 +663,7 @@ export async function getEmployeeSelfDetails(employeeId: string) {
 
   if (!emp) return null;
 
-  const [deptRes, desigRes, branchRes] = await Promise.all([
+  const [deptRes, desigRes, branchRes, profileRes] = await Promise.all([
     emp.department_id
       ? supabase.from("departments").select("*").eq("id", emp.department_id).single()
       : Promise.resolve({ data: null }),
@@ -673,14 +673,19 @@ export async function getEmployeeSelfDetails(employeeId: string) {
     emp.branch_id
       ? supabase.from("branches").select("*").eq("id", emp.branch_id).single()
       : Promise.resolve({ data: null }),
+    emp.profile_id
+      ? supabase.from("profiles").select("*").eq("id", emp.profile_id).single()
+      : Promise.resolve({ data: null }),
   ]);
 
   const dept = deptRes.data as RawDept | null;
   const desig = desigRes.data as RawDesig | null;
   const branch = branchRes.data as RawBranch | null;
+  const profile = profileRes.data as RawProfile | null;
 
   return {
     id: emp.id,
+    fullName: profile?.full_name ?? `Employee ${emp.employee_code}`,
     employeeCode: emp.employee_code,
     employmentType: emp.employment_type,
     employmentStatus: emp.employment_status,

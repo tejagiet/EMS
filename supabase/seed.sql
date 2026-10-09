@@ -526,3 +526,107 @@ VALUES
   (gen_random_uuid(), '00000001-0000-0000-0000-000000000002', 'working_days_per_week', '5',               'Working days per week',      TRUE,  NOW(), NOW()),
   (gen_random_uuid(), '00000001-0000-0000-0000-000000000002', 'working_hours_per_day', '9',               'Working hours per day',      TRUE,  NOW(), NOW())
 ON CONFLICT ON CONSTRAINT uq_settings_org_key DO NOTHING;
+
+
+-- ============================================================
+-- SECTION 13: SALARY STRUCTURES (Phase 7 Development Seed)
+-- ============================================================
+
+INSERT INTO public.salary_structures (
+  id, organization_id, employee_id, base_salary, currency,
+  payment_frequency, allowances, deductions, effective_from, is_active, notes, created_at, updated_at
+)
+VALUES
+  -- GIET Employees
+  ('0000000c-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001', '00000009-0000-0000-0000-000000000001',
+   60000.00, 'INR', 'monthly',
+   '[{"code":"HRA","name":"House Rent Allowance","amount":18000.00,"type":"fixed"},{"code":"SPECIAL","name":"Special Academic Allowance","amount":12000.00,"type":"fixed"}]'::jsonb,
+   '[{"code":"PF","name":"Provident Fund","amount":7200.00,"type":"fixed"},{"code":"PT","name":"Professional Tax","amount":200.00,"type":"fixed"}]'::jsonb,
+   '2024-01-01', true, 'Faculty leadership pay scale', NOW(), NOW()),
+
+  ('0000000c-0000-0000-0000-000000000002', '00000001-0000-0000-0000-000000000001', '00000009-0000-0000-0000-000000000002',
+   48000.00, 'INR', 'monthly',
+   '[{"code":"HRA","name":"House Rent Allowance","amount":14400.00,"type":"fixed"},{"code":"SPECIAL","name":"Special Allowance","amount":9600.00,"type":"fixed"}]'::jsonb,
+   '[{"code":"PF","name":"Provident Fund","amount":5760.00,"type":"fixed"},{"code":"PT","name":"Professional Tax","amount":200.00,"type":"fixed"}]'::jsonb,
+   '2024-01-01', true, 'Senior HR payroll scale', NOW(), NOW()),
+
+  ('0000000c-0000-0000-0000-000000000003', '00000001-0000-0000-0000-000000000001', '00000009-0000-0000-0000-000000000003',
+   40000.00, 'INR', 'monthly',
+   '[{"code":"HRA","name":"House Rent Allowance","amount":12000.00,"type":"fixed"},{"code":"SPECIAL","name":"Special Allowance","amount":8000.00,"type":"fixed"}]'::jsonb,
+   '[{"code":"PF","name":"Provident Fund","amount":4800.00,"type":"fixed"},{"code":"PT","name":"Professional Tax","amount":200.00,"type":"fixed"}]'::jsonb,
+   '2024-01-01', true, 'Lecturer compensation structure', NOW(), NOW()),
+
+  ('0000000c-0000-0000-0000-000000000004', '00000001-0000-0000-0000-000000000001', '00000009-0000-0000-0000-000000000004',
+   70000.00, 'INR', 'monthly',
+   '[{"code":"HRA","name":"House Rent Allowance","amount":21000.00,"type":"fixed"},{"code":"SPECIAL","name":"HOD Allowance","amount":14000.00,"type":"fixed"}]'::jsonb,
+   '[{"code":"PF","name":"Provident Fund","amount":8400.00,"type":"fixed"},{"code":"PT","name":"Professional Tax","amount":200.00,"type":"fixed"}]'::jsonb,
+   '2024-01-01', true, 'Department Head compensation structure', NOW(), NOW()),
+
+  -- Apex Employees
+  ('0000000c-0000-0000-0000-000000000005', '00000001-0000-0000-0000-000000000002', '00000009-0000-0000-0000-000000000005',
+   75000.00, 'INR', 'monthly',
+   '[{"code":"HRA","name":"House Rent Allowance","amount":22500.00,"type":"fixed"},{"code":"SPECIAL","name":"Special Allowance","amount":15000.00,"type":"fixed"}]'::jsonb,
+   '[{"code":"PF","name":"Provident Fund","amount":9000.00,"type":"fixed"},{"code":"PT","name":"Professional Tax","amount":200.00,"type":"fixed"}]'::jsonb,
+   '2024-01-01', true, 'Apex executive salary structure', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+
+-- ============================================================
+-- SECTION 14: RECRUITMENT SEED DATA (Phase 7 Development Seed)
+-- ============================================================
+
+INSERT INTO public.job_postings (
+  id, organization_id, department_id, designation_id,
+  title, code, description, requirements, location,
+  employment_type, vacancy_count, min_salary, max_salary, status, created_at, updated_at
+)
+VALUES
+  ('0000000e-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001',
+   '00000003-0000-0000-0000-000000000001', '00000004-0000-0000-0000-000000000001',
+   'Assistant Professor - Artificial Intelligence', 'JOB-GIET-AI-01',
+   'Conduct lectures and laboratory coursework in AI, Neural Networks and Machine Learning.',
+   'M.Tech or Ph.D in Computer Science / AI with prior academic teaching experience.',
+   'GIET Main Campus', 'full_time', 2, 45000.00, 75000.00, 'published', NOW(), NOW()),
+
+  ('0000000e-0000-0000-0000-000000000002', '00000001-0000-0000-0000-000000000001',
+   '00000003-0000-0000-0000-000000000001', '00000004-0000-0000-0000-000000000002',
+   'Senior AI Laboratory Instructor', 'JOB-GIET-AI-02',
+   'Manage practical lab setups, GPU clusters, and student projects.',
+   'B.Tech / MCA in Computer Science with Python & Linux proficiency.',
+   'GIET Main Campus', 'full_time', 1, 35000.00, 50000.00, 'published', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.candidates (
+  id, organization_id, job_posting_id, first_name, last_name, email, phone, stage, source, created_at, updated_at
+)
+VALUES
+  ('0000000f-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001',
+   '0000000e-0000-0000-0000-000000000001', 'Ramesh', 'Sharma', 'ramesh.sharma.test@gmail.com',
+   '+91 98480 12345', 'interview', 'direct', NOW(), NOW()),
+
+  ('0000000f-0000-0000-0000-000000000002', '00000001-0000-0000-0000-000000000001',
+   '0000000e-0000-0000-0000-000000000001', 'Priya', 'Rao', 'priya.rao.candidate@gmail.com',
+   '+91 98480 54321', 'offer', 'direct', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.job_offers (
+  id, candidate_id, organization_id, job_posting_id,
+  department_id, designation_id, offered_salary, joining_date, status, created_at, updated_at
+)
+VALUES
+  ('00000010-0000-0000-0000-000000000001', '0000000f-0000-0000-0000-000000000002',
+   '00000001-0000-0000-0000-000000000001', '0000000e-0000-0000-0000-000000000001',
+   '00000003-0000-0000-0000-000000000001', '00000004-0000-0000-0000-000000000001',
+   62000.00, '2026-11-01', 'accepted', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.interviews (
+  id, candidate_id, organization_id, job_posting_id,
+  interview_type, scheduled_at, duration_minutes, interviewer_name, status, created_at, updated_at
+)
+VALUES
+  ('00000011-0000-0000-0000-000000000001', '0000000f-0000-0000-0000-000000000001',
+   '00000001-0000-0000-0000-000000000001', '0000000e-0000-0000-0000-000000000001',
+   'technical', NOW() + INTERVAL '2 days', 60, 'Dr. K. Srinivas (HOD AI)', 'scheduled', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+

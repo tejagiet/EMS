@@ -402,6 +402,12 @@ export const PORTAL_CONFIGS: Record<PortalRole, PortalConfig> = {
     navigation: [
       { id: "overview", label: "Overview", path: "/portal/finance-payroll" },
       {
+        id: "salary-structures",
+        label: "Salary Structures",
+        path: "/portal/finance-payroll#structures",
+        requiredPermission: "payroll.read",
+      },
+      {
         id: "payroll-runs",
         label: "Payroll Processing",
         path: "/portal/finance-payroll#runs",

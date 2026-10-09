@@ -326,3 +326,139 @@ export const leaveDecisionSchema = z.object({
 
 export type LeaveDecisionInput = z.infer<typeof leaveDecisionSchema>;
 
+// =============================================================================
+// Phase 7: Payroll & Salary Validation Schemas
+// =============================================================================
+
+export const salaryComponentSchema = z.object({
+  code: z.string().min(1, "Component code required").max(20).trim(),
+  name: z.string().min(1, "Component name required").max(100).trim(),
+  amount: z.number().min(0, "Amount must be greater than or equal to 0"),
+  type: z.enum(["fixed", "percentage"]).default("fixed"),
+});
+
+export const salaryStructureSchema = z.object({
+  employeeId: z.string().uuid("Invalid employee ID"),
+  baseSalary: z.number().min(0, "Base salary must be non-negative"),
+  currency: z.string().max(5).default("INR"),
+  paymentFrequency: z.enum(["monthly", "bi_weekly", "weekly"]).default("monthly"),
+  allowances: z.array(salaryComponentSchema).default([]),
+  deductions: z.array(salaryComponentSchema).default([]),
+  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Effective from must be YYYY-MM-DD"),
+  effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Effective to must be YYYY-MM-DD").optional().nullable(),
+  isActive: z.boolean().default(true),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type SalaryStructureInput = z.infer<typeof salaryStructureSchema>;
+
+export const payrollRunCreateSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters").max(100).trim(),
+  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Period start must be YYYY-MM-DD"),
+  periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Period end must be YYYY-MM-DD"),
+  paymentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Payment date must be YYYY-MM-DD"),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type PayrollRunCreateInput = z.infer<typeof payrollRunCreateSchema>;
+
+export const payrollDecisionSchema = z.object({
+  runId: z.string().uuid("Invalid payroll run ID"),
+  decision: z.enum(["submit", "approve", "reject", "correct"]),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type PayrollDecisionInput = z.infer<typeof payrollDecisionSchema>;
+
+// =============================================================================
+// Phase 7: Recruitment & Candidate Pipeline Schemas
+// =============================================================================
+
+export const jobPostingSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters").max(150).trim(),
+  code: z.string().min(2, "Job code must be at least 2 characters").max(30).trim(),
+  departmentId: z.string().uuid("Invalid department").optional().nullable(),
+  designationId: z.string().uuid("Invalid designation").optional().nullable(),
+  hiringManagerId: z.string().uuid("Invalid hiring manager").optional().nullable(),
+  description: z.string().min(10, "Description must be at least 10 characters").trim(),
+  requirements: z.string().max(2000).optional().nullable(),
+  location: z.string().min(2).max(100).default("On-site"),
+  employmentType: z.enum(["full_time", "part_time", "contract", "intern", "probation"]).default("full_time"),
+  vacancyCount: z.number().int().positive("Vacancy count must be at least 1").default(1),
+  minSalary: z.number().nonnegative().optional().nullable(),
+  maxSalary: z.number().nonnegative().optional().nullable(),
+  status: z.enum(["draft", "published", "closed", "on_hold"]).default("published"),
+});
+
+export type JobPostingInput = z.infer<typeof jobPostingSchema>;
+
+export const candidateCreateSchema = z.object({
+  jobPostingId: z.string().uuid("Invalid job posting ID"),
+  firstName: z.string().min(1, "First name cannot be empty").max(50).trim(),
+  lastName: z.string().min(1, "Last name cannot be empty").max(50).trim(),
+  email: z.string().email("Invalid email address").toLowerCase().trim(),
+  phone: z.string().max(20).optional().nullable(),
+  notes: z.string().max(1000).optional().nullable(),
+  source: z.string().max(50).default("direct"),
+});
+
+export type CandidateCreateInput = z.infer<typeof candidateCreateSchema>;
+
+export const candidateStageTransitionSchema = z.object({
+  candidateId: z.string().uuid("Invalid candidate ID"),
+  toStage: z.enum(["applied", "screening", "interview", "offer", "hired", "rejected"]),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type CandidateStageTransitionInput = z.infer<typeof candidateStageTransitionSchema>;
+
+export const interviewScheduleSchema = z.object({
+  candidateId: z.string().uuid("Invalid candidate ID"),
+  jobPostingId: z.string().uuid("Invalid job posting ID"),
+  interviewType: z.enum(["screening", "technical", "hr", "management"]).default("technical"),
+  scheduledAt: z.string().datetime("Must be valid ISO timestamp"),
+  durationMinutes: z.number().int().min(15).max(240).default(45),
+  interviewerName: z.string().min(2, "Interviewer name required").max(100).trim(),
+});
+
+export type InterviewScheduleInput = z.infer<typeof interviewScheduleSchema>;
+
+export const interviewFeedbackSchema = z.object({
+  interviewId: z.string().uuid("Invalid interview ID"),
+  status: z.enum(["scheduled", "completed", "cancelled"]).default("completed"),
+  rating: z.number().int().min(1).max(5).optional().nullable(),
+  feedback: z.string().max(2000).optional().nullable(),
+  recommendation: z.enum(["strong_hire", "hire", "undecided", "reject"]).optional().nullable(),
+});
+
+export type InterviewFeedbackInput = z.infer<typeof interviewFeedbackSchema>;
+
+export const jobOfferCreateSchema = z.object({
+  candidateId: z.string().uuid("Invalid candidate ID"),
+  jobPostingId: z.string().uuid("Invalid job posting ID"),
+  designationId: z.string().uuid("Invalid designation ID").optional().nullable(),
+  departmentId: z.string().uuid("Invalid department ID").optional().nullable(),
+  offeredSalary: z.number().positive("Offered salary must be positive"),
+  joiningDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Joining date must be YYYY-MM-DD"),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type JobOfferCreateInput = z.infer<typeof jobOfferCreateSchema>;
+
+export const jobOfferDecisionSchema = z.object({
+  offerId: z.string().uuid("Invalid offer ID"),
+  status: z.enum(["sent", "accepted", "rejected", "withdrawn"]),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type JobOfferDecisionInput = z.infer<typeof jobOfferDecisionSchema>;
+
+export const hireCandidateSchema = z.object({
+  candidateId: z.string().uuid("Invalid candidate ID"),
+  branchId: z.string().uuid("Branch assignment required").optional().nullable(),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type HireCandidateInput = z.infer<typeof hireCandidateSchema>;
+
+

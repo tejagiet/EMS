@@ -389,3 +389,70 @@
 - [x] Strict TypeScript: `pnpm typecheck` passed (0 errors across 9 workspaces)
 - [x] Next.js 15 production build: `pnpm --filter @ems/web build` passed (29 routes statically/dynamically generated cleanly)
 
+---
+
+## Phase 7 — Payroll, Payslips and Recruitment Modules ✅ Complete
+
+> **Status:** ✅ Complete — all acceptance criteria verified
+
+### Checklist
+
+#### Database Migration & RPCs (Phase 7)
+- [x] `supabase/migrations/20261009000007_phase7_payroll_and_recruitment.sql`:
+  - Tables: `salary_structures`, `payroll_runs`, `payroll_records`, `payroll_approval_history`, `job_postings`, `candidates`, `candidate_stage_history`, `interviews`, `job_offers`
+  - Notification Types updated: Added `payroll_run_submitted`, `payroll_run_approved`, `payslip_available`, `interview_scheduled`, `job_offer_issued`, `candidate_hired`
+  - Immutability trigger guards: `trg_payroll_runs_immutability` and `trg_payroll_records_immutability` strictly locking records upon `approved` state
+  - Transactional Database RPCs:
+    - `public.create_payroll_run(p_organization_id, p_title, p_period_start, p_period_end, p_payment_date, p_created_by)`: Gathers active salary structures for eligible staff, computes gross/deductions/net pay with strict two-decimal monetary rounding, and initializes draft batch
+    - `public.process_payroll_run_decision(p_run_id, p_decision, p_actor_id, p_notes)`: Manages approval lifecycle (`draft` -> `pending_approval` -> `approved` / `rejected`), enforces immutable locking, generates authoritative payslip numbers, records audit trail, and dispatches employee notifications
+    - `public.transition_candidate_stage(p_candidate_id, p_to_stage, p_actor_id, p_notes)`: Strictly enforces recruitment pipeline stage progression (`applied` -> `screening` -> `interview` -> `offer` -> `hired`/`rejected`) and logs stage history
+    - `public.hire_candidate_to_employee(p_candidate_id, p_organization_id, p_branch_id, p_actor_id, p_notes)`: Atomic & idempotent onboarding handoff creating real employee profile, unique employee code, and starting salary structure from accepted offer without duplicate provisioning
+  - Deterministic seed data appended to `supabase/seed.sql` for salary structures, job requisitions, candidate pipeline, interviews, and accepted job offers
+  - Granular RLS policies scoping access across finance/payroll managers, recruitment managers, department heads, and employee self-service
+
+#### Shared Monorepo Packages
+- [x] `packages/types/src/index.ts`: Exported TypeScript interfaces for `SalaryComponentItem`, `SalaryStructure`, `PayrollRun`, `PayrollRecord`, `PayrollApprovalHistoryItem`, `JobPosting`, `Candidate`, `CandidateStageHistoryItem`, `Interview`, `JobOffer`
+- [x] `packages/validation/src/index.ts`: Added Zod schemas for salary structures, payroll run creation, payroll approval decisions, job postings, candidate applications, stage transitions, interview scheduling/feedback, job offers, and hiring handoffs
+- [x] `packages/config/src/index.ts`: Navigation updated with salary structures sub-navigation for finance and recruitment portal links
+
+#### Server Actions & Data Layer
+- [x] `apps/web/lib/data/payroll.ts` & `payroll-actions.ts`:
+  - Complete salary structure management and calculations
+  - Batch payroll runs creation and approval workflows
+  - Itemized payslip line items retrieval and employee self-service view
+  - Formula-injection safe CSV exports for payroll register
+  - Server Action wrapper `getPayrollRunDetailsAction` for client component inspection
+- [x] `apps/web/lib/data/recruitment.ts` & `recruitment-actions.ts`:
+  - Department job requisitions CRUD
+  - Candidate stage transitions with validation
+  - Interview scheduling and evaluation feedback recording
+  - Formal job offer issuance and decision processing
+  - Idempotent onboarding handoff action to employee directory
+  - Formula-injection safe CSV exports for talent pipeline
+  - Server Action wrapper `getCandidateDetailsAction` for candidate profile inspection
+
+#### UI Components & Portals
+- [x] `PayslipViewModal`: Authoritative, formatted, printable digital payslip modal with base salary, itemized allowances, itemized deductions, net pay in INR currency, and tamper-evident metadata
+- [x] `EmployeePayslipsClient`: Self-service digital payslip table for active staff
+- [x] `SalaryStructuresClient`: Salary structure manager with dynamic allowances and deductions breakdown editors
+- [x] `PayrollRunsClient`: Comprehensive payroll batch console with metrics summary, approval workflow actions, audit history trail, employee payslip line items, and CSV export
+- [x] `JobPostingsClient`: Academic & departmental job requisitions manager
+- [x] `CandidatePipelineClient`: Comprehensive talent pipeline console with stage tabs, search filter, inspector modal, stage transition dialog, interview scheduler, feedback recorder, offer generator, and onboarding handoff
+- [x] Connected Portals:
+  - [x] Finance & Payroll Operations (`/portal/finance-payroll`): Live KPI cards, active runs client, salary structures client, and compensation grade distribution chart
+  - [x] Recruitment & Talent Acquisition (`/portal/recruitment`): Live pipeline metrics, candidate pipeline client, job requisitions manager, and department capacity chart
+  - [x] Employee Self-Service Workspace (`/portal/employee`): Connected digital payslip history table and quick inspection modal
+
+#### Automated Testing & Verification
+- [x] Vitest test suite (`tests/payroll-and-recruitment.test.ts`): 12 comprehensive unit and business logic tests verifying:
+  - Gross salary, total deductions, and net salary calculation with allowances
+  - Strict two-decimal monetary rounding to prevent fractional currency drift
+  - Valid and invalid candidate pipeline stage transitions
+  - Rejection from any active stage
+  - Interview evaluation rating bounds and recommendation validation
+  - Job offer salary validation
+  - CSV formula-injection sanitization (`=`, `+`, `-`, `@`, `\t`, `\r`)
+- [x] Total test suite: 76/76 tests passing across 6 test suites
+- [x] Strict TypeScript: `pnpm typecheck` passed (0 errors across all 9 workspaces)
+- [x] Next.js 15 production build: `pnpm --filter @ems/web build` passed (29 routes cleanly generated)
+

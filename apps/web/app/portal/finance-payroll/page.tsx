@@ -1,13 +1,15 @@
 import { BarChart } from "@/components/charts/BarChart";
-import { UnavailableChartCard } from "@/components/charts/UnavailableChartCard";
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { MetricCard } from "@/components/ui/MetricCard";
-import { SchemaDependencyNotice } from "@/components/ui/SchemaDependencyNotice";
 import { verifyPortalAccess } from "@/lib/auth/session";
 import { getFinancePayrollAnalytics } from "@/lib/data/analytics";
-import { CreditCard, Users } from "lucide-react";
+import { getPayrollRuns, getSalaryStructures } from "@/lib/data/payroll";
+import { getEmployeesDirectory } from "@/lib/data/employees";
+import { PayrollRunsClient } from "@/components/payroll/PayrollRunsClient";
+import { SalaryStructuresClient } from "@/components/payroll/SalaryStructuresClient";
+import { CreditCard, Users, CheckCircle2, AlertCircle } from "lucide-react";
 
 export const metadata = {
   title: "Finance & Payroll Console | EMS",
@@ -16,9 +18,27 @@ export const metadata = {
 export default async function FinancePayrollDashboard() {
   const context = await verifyPortalAccess("finance_payroll_manager");
   const orgId = context.activeOrganization?.id ?? "";
-  const data = await getFinancePayrollAnalytics(orgId);
 
-  const deptPayrollChart = data.departmentBreakdown.map((d) => ({
+  const [analytics, runs, structures, empResult] = await Promise.all([
+    getFinancePayrollAnalytics(orgId),
+    getPayrollRuns(orgId),
+    getSalaryStructures(orgId),
+    getEmployeesDirectory(orgId, { pageSize: 100 }),
+  ]);
+
+  const activeEmployees = empResult.employees.map((e) => ({
+    id: e.id,
+    fullName: e.fullName,
+    employeeCode: e.employeeCode,
+  }));
+
+  const pendingRunsCount = runs.filter((r) => r.status === "pending_approval").length;
+  const approvedRunsCount = runs.filter((r) => r.status === "approved").length;
+
+  const latestApprovedRun = runs.find((r) => r.status === "approved");
+  const latestDisbursed = latestApprovedRun ? latestApprovedRun.totalNet : 0;
+
+  const deptPayrollChart = analytics.departmentBreakdown.map((d) => ({
     label: d.departmentName,
     value: d.count,
   }));
@@ -63,7 +83,7 @@ export default async function FinancePayrollDashboard() {
           Finance & Payroll Operations
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 4 }}>
-          Salaried headcount, organizational compensation grades, and statutory payroll workflows.
+          Configurable salary structures, batch payroll calculations, multi-level approvals, and immutable payslips.
         </p>
       </div>
 
@@ -77,31 +97,61 @@ export default async function FinancePayrollDashboard() {
       >
         <MetricCard
           label="Active Salaried Staff"
-          value={data.activeSalariedCount}
-          subtitle="Enrolled on payroll register"
+          value={analytics.activeSalariedCount}
+          subtitle={`${structures.length} configured structures`}
           icon={<Users size={20} />}
         />
         <MetricCard
-          label="Current Payroll Period"
-          isUnavailable
-          requiredPhase={6}
-          unavailableReason="Awaiting Phase 6 Payroll Cycle schema."
+          label="Pending Run Approvals"
+          value={pendingRunsCount}
+          subtitle={pendingRunsCount > 0 ? "Action required" : "All batches processed"}
+          icon={<AlertCircle size={20} />}
         />
         <MetricCard
-          label="Pending Batch Approvals"
-          isUnavailable
-          requiredPhase={6}
-          unavailableReason="Awaiting Phase 6 Disbursement ledger."
+          label="Latest Approved Net"
+          value={`₹${latestDisbursed.toLocaleString("en-IN", { minimumFractionDigits: 0 })}`}
+          subtitle={latestApprovedRun ? `${latestApprovedRun.title} (${approvedRunsCount} closed)` : "No approved runs yet"}
+          icon={<CheckCircle2 size={20} />}
         />
         <MetricCard
           label="Compensation Grades"
-          value={data.totalDesignations}
+          value={analytics.totalDesignations}
           subtitle="Approved pay bands"
           icon={<CreditCard size={20} />}
         />
       </div>
 
-      {/* Charts & Dependency Notices */}
+      {/* Interactive Payroll Processing Section */}
+      <Card id="runs">
+        <CardHeader>
+          <div>
+            <CardTitle>Payroll Runs & Approval Cycles</CardTitle>
+            <CardDescription>
+              Calculate periodic employee compensation, review deduction breakdowns, approve runs, and export audit sheets.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <PayrollRunsClient runs={runs} />
+        </CardContent>
+      </Card>
+
+      {/* Salary Structures Section */}
+      <Card id="structures">
+        <CardHeader>
+          <div>
+            <CardTitle>Employee Salary Structures</CardTitle>
+            <CardDescription>
+              Effective-dated basic salary, customizable allowances (HRA, Special), and statutory deductions (PF, PT).
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <SalaryStructuresClient structures={structures} employees={activeEmployees} />
+        </CardContent>
+      </Card>
+
+      {/* Charts & Grade Distribution */}
       <div
         style={{
           display: "grid",
@@ -111,48 +161,31 @@ export default async function FinancePayrollDashboard() {
       >
         <BarChart
           title="Department Payroll Allocation Roster"
-          description="Distribution of salaried employees across cost centers"
+          description="Distribution of salaried employees across academic and administrative departments"
           data={deptPayrollChart}
           xAxisLabel="Department"
           yAxisLabel="Salaried Staff"
         />
 
-        <UnavailableChartCard
-          title="Payroll Disbursement History by Period"
-          description="Aggregated gross compensation, deductions, and net disbursements per financial cycle"
-          requiredPhase={6}
-          domainModule="Payroll & Salary Structures"
-          targetTables={["salary_structures", "salary_components", "payroll_runs", "payslips"]}
-        />
+        <Card id="reports">
+          <CardHeader>
+            <div>
+              <CardTitle>Designation Pay Bands & Grades</CardTitle>
+              <CardDescription>
+                Hierarchical compensation bands established by GIET institutional administration
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <DataTable
+              data={analytics.designationGrades as unknown as Record<string, unknown>[]}
+              columns={gradeColumns}
+              keyExtractor={(row) => String(row.id)}
+              pageSize={5}
+            />
+          </CardContent>
+        </Card>
       </div>
-
-      {/* Schema Notice */}
-      <SchemaDependencyNotice
-        moduleName="Compensation & Payroll Engine"
-        requiredPhase={6}
-        description="Salary components (Basic, HRA, Allowances, PF, ESI, Tax withholding), payroll batch runs, and digital payslip generation activate in Phase 6."
-        plannedSchema={["salary_structures", "payroll_runs", "payslips", "tax_declarations"]}
-      />
-
-      {/* Designation Salary Grades */}
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>Designation Pay Bands & Compensation Grades</CardTitle>
-            <CardDescription>
-              Registered hierarchical salary levels mapped to institutional roles
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            data={data.designationGrades as unknown as Record<string, unknown>[]}
-            columns={gradeColumns}
-            keyExtractor={(row) => String(row.id)}
-            pageSize={6}
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 }

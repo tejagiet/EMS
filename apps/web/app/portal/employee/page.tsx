@@ -2,11 +2,13 @@ import { verifyPortalAccess } from "@/lib/auth/session";
 import { getEmployeeSelfDetails } from "@/lib/data/analytics";
 import { getTodayAttendanceStatus, getEmployeeAttendanceHistory } from "@/lib/data/attendance";
 import { getEmployeeLeaveBalances, getEmployeeLeaveRequests } from "@/lib/data/leave";
+import { getEmployeePayslips } from "@/lib/data/payroll";
 import { EmployeeSelfClient } from "@/components/attendance/EmployeeSelfClient";
+import { EmployeePayslipsClient } from "@/components/payroll/EmployeePayslipsClient";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { MetricCard } from "@/components/ui/MetricCard";
-import { User, Briefcase, Building2, MapPin, Calendar, Mail, Clock, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { User, Briefcase, Building2, MapPin, Calendar, Mail, Clock, ShieldCheck, CheckCircle2, FileText } from "lucide-react";
 
 export const metadata = {
   title: "Employee Self-Service Portal | EMS",
@@ -17,7 +19,7 @@ export default async function EmployeeDashboard() {
   const orgId = context.activeOrganization?.id ?? "";
   const linkedEmployee = context.linkedEmployee;
 
-  const [empDetails, clockStatus, balances, attendanceHistory, leaveRequests] = await Promise.all([
+  const [empDetails, clockStatus, balances, attendanceHistory, leaveRequests, payslips] = await Promise.all([
     linkedEmployee ? getEmployeeSelfDetails(linkedEmployee.id) : null,
     linkedEmployee
       ? getTodayAttendanceStatus(orgId, linkedEmployee.id)
@@ -25,10 +27,12 @@ export default async function EmployeeDashboard() {
     linkedEmployee ? getEmployeeLeaveBalances(orgId, linkedEmployee.id) : [],
     linkedEmployee ? getEmployeeAttendanceHistory(orgId, linkedEmployee.id, 10) : [],
     linkedEmployee ? getEmployeeLeaveRequests(orgId, linkedEmployee.id) : [],
+    linkedEmployee ? getEmployeePayslips(linkedEmployee.id) : [],
   ]);
 
   const totalAvailableLeave = balances.reduce((acc, b) => acc + b.availableDays, 0);
   const pendingRequestsCount = leaveRequests.filter((r) => r.status === "pending").length;
+  const latestPayslip = payslips[0];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -37,7 +41,7 @@ export default async function EmployeeDashboard() {
           Employee Self-Service Workspace
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 4 }}>
-          Personal job profile, real-time attendance punching, leave applications, and timesheet logs.
+          Personal job profile, real-time attendance punching, leave applications, and digital payslips.
         </p>
       </div>
 
@@ -50,13 +54,19 @@ export default async function EmployeeDashboard() {
         }}
       >
         <MetricCard
-          label="Today's Clock-In"
+          label="Today's Status"
           value={
-            clockStatus.activeRecord?.clockIn
-              ? new Date(clockStatus.activeRecord.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-              : "Not Stamped"
+            clockStatus.hasOpenSession
+              ? "Clocked In"
+              : clockStatus.activeRecord?.clockOut
+              ? "Completed"
+              : "Not Clocked In"
           }
-          subtitle={clockStatus.hasOpenSession ? "Session Currently Active" : "No active session"}
+          subtitle={
+            clockStatus.assignedShift
+              ? `Shift: ${clockStatus.assignedShift.name} (${clockStatus.assignedShift.startTime.slice(0, 5)} - ${clockStatus.assignedShift.endTime.slice(0, 5)})`
+              : "No shift assigned today"
+          }
           icon={<Clock size={20} />}
         />
         <MetricCard
@@ -72,10 +82,10 @@ export default async function EmployeeDashboard() {
           icon={<ShieldCheck size={20} />}
         />
         <MetricCard
-          label="Latest Digital Payslip"
-          isUnavailable
-          requiredPhase={7}
-          unavailableReason="Awaiting Phase 7 Payroll & Compensation cycle."
+          label="Latest Verified Payslip"
+          value={latestPayslip ? `₹${latestPayslip.netSalary.toLocaleString("en-IN", { minimumFractionDigits: 0 })}` : "None Issued"}
+          subtitle={latestPayslip ? (latestPayslip.periodTitle ?? latestPayslip.payslipNumber) : "Awaiting monthly cycle"}
+          icon={<FileText size={20} />}
         />
       </div>
 
@@ -83,12 +93,27 @@ export default async function EmployeeDashboard() {
       {linkedEmployee && (
         <EmployeeSelfClient
           initialClockStatus={clockStatus}
-          employeeName={context.profile.fullName ?? "Staff Member"}
+          employeeName={context.profile?.fullName ?? "Staff Member"}
           balances={balances}
           attendanceHistory={attendanceHistory}
           leaveRequests={leaveRequests}
         />
       )}
+
+      {/* My Digital Payslips Section */}
+      <Card id="payslips">
+        <CardHeader>
+          <div>
+            <CardTitle>My Issued Payslips & Tax Ledgers</CardTitle>
+            <CardDescription>
+              Authoritative monthly salary slips containing earnings, statutory deductions, and printable receipts.
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <EmployeePayslipsClient payslips={payslips} />
+        </CardContent>
+      </Card>
 
       {/* Profile Overview Card */}
       <div
@@ -119,14 +144,7 @@ export default async function EmployeeDashboard() {
               <div
                 style={{ display: "flex", flexDirection: "column", gap: 14, fontSize: "0.88rem" }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    borderBottom: "1px solid var(--border)",
-                    paddingBottom: 8,
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span
                     style={{
                       color: "var(--text-muted)",
@@ -135,19 +153,11 @@ export default async function EmployeeDashboard() {
                       gap: 6,
                     }}
                   >
-                    <User size={15} /> Employee Code
+                    <User size={15} /> Full Name
                   </span>
-                  <code style={{ fontWeight: 700 }}>{empDetails.employeeCode}</code>
+                  <span style={{ fontWeight: 600 }}>{empDetails.fullName}</span>
                 </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    borderBottom: "1px solid var(--border)",
-                    paddingBottom: 8,
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span
                     style={{
                       color: "var(--text-muted)",
@@ -158,17 +168,9 @@ export default async function EmployeeDashboard() {
                   >
                     <Briefcase size={15} /> Designation
                   </span>
-                  <strong>{empDetails.designationName}</strong>
+                  <span style={{ fontWeight: 600 }}>{empDetails.designationName ?? "Faculty"}</span>
                 </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    borderBottom: "1px solid var(--border)",
-                    paddingBottom: 8,
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span
                     style={{
                       color: "var(--text-muted)",
@@ -179,17 +181,9 @@ export default async function EmployeeDashboard() {
                   >
                     <Building2 size={15} /> Department
                   </span>
-                  <span>{empDetails.departmentName}</span>
+                  <span>{empDetails.departmentName ?? "AI Department"}</span>
                 </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    borderBottom: "1px solid var(--border)",
-                    paddingBottom: 8,
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span
                     style={{
                       color: "var(--text-muted)",
@@ -198,19 +192,11 @@ export default async function EmployeeDashboard() {
                       gap: 6,
                     }}
                   >
-                    <MapPin size={15} /> Branch / Campus
+                    <MapPin size={15} /> Branch
                   </span>
-                  <span>{empDetails.branchName}</span>
+                  <span>{empDetails.branchName ?? "Main Campus"}</span>
                 </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    borderBottom: "1px solid var(--border)",
-                    paddingBottom: 8,
-                  }}
-                >
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span
                     style={{
                       color: "var(--text-muted)",
@@ -219,11 +205,10 @@ export default async function EmployeeDashboard() {
                       gap: 6,
                     }}
                   >
-                    <Calendar size={15} /> Date of Joining
+                    <Calendar size={15} /> Joining Date
                   </span>
-                  <span>{new Date(empDetails.dateOfJoining).toLocaleDateString()}</span>
+                  <span>{empDetails.dateOfJoining}</span>
                 </div>
-
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <span
                     style={{
@@ -263,6 +248,7 @@ export default async function EmployeeDashboard() {
             <div style={{ fontWeight: 600, marginBottom: 4 }}>Institutional Security Enforcement</div>
             All attendance clock-ins use trusted PostgreSQL database timestamps to prevent local machine clock tampering.
             Leave deductions and quota reserves are enforced transactionally against the authoritative leave ledger.
+            Payslips are digitally locked and cryptographically tamper-resistant upon supervisory approval.
           </div>
         </div>
       </div>

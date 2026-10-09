@@ -542,6 +542,14 @@ export type NotificationType =
   | "correction_submitted"
   | "correction_reviewed"
   | "shift_assigned"
+  | "payroll_submitted"
+  | "payroll_approved"
+  | "payroll_rejected"
+  | "payslip_ready"
+  | "candidate_stage_changed"
+  | "interview_scheduled"
+  | "offer_created"
+  | "candidate_hired"
   | "system";
 
 export interface AppNotification {
@@ -555,4 +563,219 @@ export interface AppNotification {
   isRead: boolean;
   createdAt: ISODateString;
 }
+
+// =============================================================================
+// 9. Phase 7 Payroll & Compensation Types
+// =============================================================================
+
+export interface SalaryComponentItem {
+  code: string;
+  name: string;
+  amount: number;
+  type: "fixed" | "percentage";
+}
+
+export interface SalaryStructure {
+  id: UUID;
+  organizationId: UUID;
+  employeeId: UUID;
+  baseSalary: number;
+  currency: string;
+  paymentFrequency: "monthly" | "bi_weekly" | "weekly";
+  allowances: SalaryComponentItem[];
+  deductions: SalaryComponentItem[];
+  effectiveFrom: string; // YYYY-MM-DD
+  effectiveTo?: Nullable<string> | undefined;
+  isActive: boolean;
+  notes?: Nullable<string> | undefined;
+  createdBy?: Nullable<UUID> | undefined;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export type PayrollRunStatus =
+  | "draft"
+  | "pending_approval"
+  | "approved"
+  | "rejected"
+  | "cancelled";
+
+export interface PayrollRun {
+  id: UUID;
+  organizationId: UUID;
+  title: string;
+  periodStart: string; // YYYY-MM-DD
+  periodEnd: string;   // YYYY-MM-DD
+  paymentDate: string; // YYYY-MM-DD
+  status: PayrollRunStatus;
+  totalGross: number;
+  totalDeductions: number;
+  totalNet: number;
+  employeeCount: number;
+  isLocked: boolean;
+  preparedBy?: Nullable<UUID> | undefined;
+  approvedBy?: Nullable<UUID> | undefined;
+  approvedAt?: Nullable<ISODateString> | undefined;
+  rejectionReason?: Nullable<string> | undefined;
+  notes?: Nullable<string> | undefined;
+  preparedByName?: string | undefined;
+  approvedByName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface PayrollRecord {
+  id: UUID;
+  payrollRunId: UUID;
+  organizationId: UUID;
+  employeeId: UUID;
+  salaryStructureId?: Nullable<UUID> | undefined;
+  baseSalary: number;
+  grossSalary: number;
+  totalDeductions: number;
+  netSalary: number;
+  allowancesBreakdown: SalaryComponentItem[];
+  deductionsBreakdown: SalaryComponentItem[];
+  payslipNumber: string;
+  paymentStatus: "pending" | "paid" | "cancelled";
+  paymentMethod: "bank_transfer" | "cheque" | "cash";
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  departmentName?: string | undefined;
+  designationName?: string | undefined;
+  periodTitle?: string | undefined;
+  periodStart?: string | undefined;
+  periodEnd?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface PayrollApprovalHistoryItem {
+  id: UUID;
+  payrollRunId: UUID;
+  organizationId: UUID;
+  actorId: UUID;
+  action: "created" | "submitted" | "approved" | "rejected" | "locked" | "corrected";
+  comments?: Nullable<string> | undefined;
+  actorName?: string | undefined;
+  createdAt: ISODateString;
+}
+
+// =============================================================================
+// 10. Phase 7 Recruitment & Talent Acquisition Types
+// =============================================================================
+
+export type JobPostingStatus = "draft" | "published" | "closed" | "on_hold";
+
+export interface JobPosting {
+  id: UUID;
+  organizationId: UUID;
+  departmentId?: Nullable<UUID> | undefined;
+  designationId?: Nullable<UUID> | undefined;
+  hiringManagerId?: Nullable<UUID> | undefined;
+  title: string;
+  code: string;
+  description: string;
+  requirements?: Nullable<string> | undefined;
+  location: string;
+  employmentType: EmploymentType;
+  vacancyCount: number;
+  minSalary?: Nullable<number> | undefined;
+  maxSalary?: Nullable<number> | undefined;
+  status: JobPostingStatus;
+  departmentName?: string | undefined;
+  designationName?: string | undefined;
+  hiringManagerName?: string | undefined;
+  candidateCount?: number | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export type CandidateStage =
+  | "applied"
+  | "screening"
+  | "interview"
+  | "offer"
+  | "hired"
+  | "rejected";
+
+export interface Candidate {
+  id: UUID;
+  organizationId: UUID;
+  jobPostingId: UUID;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  email: string;
+  phone?: Nullable<string> | undefined;
+  stage: CandidateStage;
+  resumeUrl?: Nullable<string> | undefined;
+  notes?: Nullable<string> | undefined;
+  source: string;
+  jobTitle?: string | undefined;
+  jobCode?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface CandidateStageHistoryItem {
+  id: UUID;
+  candidateId: UUID;
+  organizationId: UUID;
+  fromStage: CandidateStage;
+  toStage: CandidateStage;
+  changedBy?: Nullable<UUID> | undefined;
+  notes?: Nullable<string> | undefined;
+  changedByName?: string | undefined;
+  createdAt: ISODateString;
+}
+
+export type InterviewType = "screening" | "technical" | "hr" | "management";
+export type InterviewStatus = "scheduled" | "completed" | "cancelled";
+export type InterviewRecommendation = "strong_hire" | "hire" | "undecided" | "reject";
+
+export interface Interview {
+  id: UUID;
+  candidateId: UUID;
+  organizationId: UUID;
+  jobPostingId: UUID;
+  interviewType: InterviewType;
+  scheduledAt: ISODateString;
+  durationMinutes: number;
+  interviewerName: string;
+  status: InterviewStatus;
+  rating?: Nullable<number> | undefined;
+  feedback?: Nullable<string> | undefined;
+  recommendation?: Nullable<InterviewRecommendation> | undefined;
+  candidateName?: string | undefined;
+  candidateEmail?: string | undefined;
+  jobTitle?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export type OfferStatus = "draft" | "sent" | "accepted" | "rejected" | "withdrawn";
+
+export interface JobOffer {
+  id: UUID;
+  candidateId: UUID;
+  organizationId: UUID;
+  jobPostingId: UUID;
+  designationId?: Nullable<UUID> | undefined;
+  departmentId?: Nullable<UUID> | undefined;
+  offeredSalary: number;
+  joiningDate: string; // YYYY-MM-DD
+  status: OfferStatus;
+  notes?: Nullable<string> | undefined;
+  candidateName?: string | undefined;
+  candidateEmail?: string | undefined;
+  jobTitle?: string | undefined;
+  departmentName?: string | undefined;
+  designationName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
 
