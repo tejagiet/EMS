@@ -7,6 +7,7 @@
 ### Checklist
 
 #### Workspace Scaffolding
+
 - [x] pnpm workspace initialized (`pnpm-workspace.yaml`)
 - [x] Root `package.json` with workspace-level scripts
 - [x] Directory structure created:
@@ -24,21 +25,25 @@
   - [x] `docs/` — Project documentation
 
 #### TypeScript Configuration
+
 - [x] Root `tsconfig.base.json` — shared strict compiler options
 - [x] Root `tsconfig.json` — project references for all packages
 - [x] Per-package `tsconfig.json` files (all 6 packages)
 - [x] Per-app `tsconfig.json` files (web, mobile, desktop — platform-appropriate settings)
 
 #### Code Quality
+
 - [x] `eslint.config.mjs` — ESLint flat config with TypeScript strict rules
 - [x] `.prettierrc.json` — Prettier formatting configuration
 - [x] `.prettierignore` — Prettier ignore patterns
 
 #### Environment & Security
+
 - [x] `.gitignore` — Covers node_modules, build outputs, credentials, generated artifacts
 - [x] `.env.example` — Placeholder-only environment variable template
 
 #### Package Source Stubs
+
 - [x] `packages/types/src/index.ts`
 - [x] `packages/validation/src/index.ts`
 - [x] `packages/config/src/index.ts`
@@ -47,20 +52,24 @@
 - [x] `packages/shared/src/index.ts`
 
 #### App Stubs
+
 - [x] `apps/web/app/page.tsx` — Next.js app router placeholder
 - [x] `apps/web/app/layout.tsx` — Next.js root layout
 - [x] `apps/mobile/app/index.tsx` — Expo screen placeholder
 - [x] `apps/desktop/src/App.tsx` — Tauri/React placeholder
 
 #### Documentation
+
 - [x] `README.md` — Prerequisites, installation, structure, commands
 - [x] `docs/DEVELOPMENT_STATUS.md` — This file
 
 #### Git
+
 - [x] Git repository initialized
 - [x] Initial commit created
 
 #### Dependency Installation & Validation
+
 - [ ] `pnpm install` — Install all workspace dependencies
 - [ ] `pnpm typecheck` — TypeScript compilation check passes
 - [ ] `pnpm format:check` — Prettier formatting check passes
