@@ -11,7 +11,10 @@
 --
 -- IMPORTANT: These tests run against the local dev database ONLY.
 -- Never run against production.
--- ============================================================
+-- Ensure pgTAP extension is enabled and on search_path
+CREATE SCHEMA IF NOT EXISTS extensions;
+CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
+SET search_path = public, extensions;
 
 BEGIN;
 
