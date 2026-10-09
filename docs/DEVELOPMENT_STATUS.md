@@ -2,7 +2,7 @@
 
 ## Phase 1 — Project Foundation
 
-> **Status:** 🟡 In Progress / ✅ Completed items tracked below
+> **Status:** ✅ Complete — all acceptance criteria verified
 
 ### Checklist
 
@@ -70,10 +70,10 @@
 
 #### Dependency Installation & Validation
 
-- [ ] `pnpm install` — Install all workspace dependencies
-- [ ] `pnpm typecheck` — TypeScript compilation check passes
-- [ ] `pnpm format:check` — Prettier formatting check passes
-- [ ] `pnpm lint` — ESLint passes (packages only; apps require framework installs)
+- [x] `pnpm install` — 916 packages installed successfully (1m 31s)
+- [x] `pnpm typecheck` — All 6 packages pass TypeScript type checking (zero errors)
+- [x] `pnpm format:check` — Prettier formatting check passes (all files clean)
+- [x] `pnpm lint` (packages) — ESLint passes on all 6 packages (zero errors/warnings)
 
 ---
 
