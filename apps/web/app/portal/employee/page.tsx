@@ -3,12 +3,27 @@ import { getEmployeeSelfDetails } from "@/lib/data/analytics";
 import { getTodayAttendanceStatus, getEmployeeAttendanceHistory } from "@/lib/data/attendance";
 import { getEmployeeLeaveBalances, getEmployeeLeaveRequests } from "@/lib/data/leave";
 import { getEmployeePayslips } from "@/lib/data/payroll";
+import { getEmployeeTasks } from "@/lib/data/tasks";
+import { getAnnouncements } from "@/lib/data/announcements";
+import { getAssets } from "@/lib/data/assets";
 import { EmployeeSelfClient } from "@/components/attendance/EmployeeSelfClient";
 import { EmployeePayslipsClient } from "@/components/payroll/EmployeePayslipsClient";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { MetricCard } from "@/components/ui/MetricCard";
-import { User, Briefcase, Building2, MapPin, Calendar, Mail, Clock, ShieldCheck, CheckCircle2, FileText } from "lucide-react";
+import {
+  User,
+  Briefcase,
+  Building2,
+  MapPin,
+  Calendar,
+  Mail,
+  Clock,
+  ShieldCheck,
+  CheckCircle2,
+  Laptop,
+  Megaphone,
+} from "lucide-react";
 
 export const metadata = {
   title: "Employee Self-Service Portal | EMS",
@@ -19,7 +34,17 @@ export default async function EmployeeDashboard() {
   const orgId = context.activeOrganization?.id ?? "";
   const linkedEmployee = context.linkedEmployee;
 
-  const [empDetails, clockStatus, balances, attendanceHistory, leaveRequests, payslips] = await Promise.all([
+  const [
+    empDetails,
+    clockStatus,
+    balances,
+    attendanceHistory,
+    leaveRequests,
+    payslips,
+    tasks,
+    announcements,
+    assets,
+  ] = await Promise.all([
     linkedEmployee ? getEmployeeSelfDetails(linkedEmployee.id) : null,
     linkedEmployee
       ? getTodayAttendanceStatus(orgId, linkedEmployee.id)
@@ -28,11 +53,15 @@ export default async function EmployeeDashboard() {
     linkedEmployee ? getEmployeeAttendanceHistory(orgId, linkedEmployee.id, 10) : [],
     linkedEmployee ? getEmployeeLeaveRequests(orgId, linkedEmployee.id) : [],
     linkedEmployee ? getEmployeePayslips(linkedEmployee.id) : [],
+    linkedEmployee ? getEmployeeTasks(orgId, linkedEmployee.id) : [],
+    getAnnouncements(orgId, context.userId),
+    getAssets(orgId),
   ]);
 
   const totalAvailableLeave = balances.reduce((acc, b) => acc + b.availableDays, 0);
   const pendingRequestsCount = leaveRequests.filter((r) => r.status === "pending").length;
-  const latestPayslip = payslips[0];
+  const myAssets = assets.filter((a) => a.currentEmployeeId === linkedEmployee?.id);
+  const pendingTasksCount = tasks.filter((t) => t.status !== "completed" && t.status !== "cancelled").length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -41,11 +70,11 @@ export default async function EmployeeDashboard() {
           Employee Self-Service Workspace
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 4 }}>
-          Personal job profile, real-time attendance punching, leave applications, and digital payslips.
+          Personal job profile, real-time attendance punching, leave applications, digital payslips, and operational assets.
         </p>
       </div>
 
-      {/* KPI Cards — Fully Connected Live Metrics */}
+      {/* KPI Cards */}
       <div
         style={{
           display: "grid",
@@ -82,10 +111,10 @@ export default async function EmployeeDashboard() {
           icon={<ShieldCheck size={20} />}
         />
         <MetricCard
-          label="Latest Verified Payslip"
-          value={latestPayslip ? `₹${latestPayslip.netSalary.toLocaleString("en-IN", { minimumFractionDigits: 0 })}` : "None Issued"}
-          subtitle={latestPayslip ? (latestPayslip.periodTitle ?? latestPayslip.payslipNumber) : "Awaiting monthly cycle"}
-          icon={<FileText size={20} />}
+          label="My Assigned Hardware"
+          value={`${myAssets.length} Devices`}
+          subtitle="Physical workstations under custody"
+          icon={<Laptop size={20} />}
         />
       </div>
 
@@ -99,6 +128,109 @@ export default async function EmployeeDashboard() {
           leaveRequests={leaveRequests}
         />
       )}
+
+      {/* Announcements Broadcast Card */}
+      <Card id="announcements">
+        <CardHeader>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Megaphone size={18} className="text-indigo-600" />
+            <div>
+              <CardTitle>Institutional Notices & Announcements</CardTitle>
+              <CardDescription>
+                Campus-wide bulletins and departmental operational memos
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {announcements.length === 0 ? (
+            <p className="text-sm text-slate-500 py-3">No active announcements posted.</p>
+          ) : (
+            <div className="space-y-3">
+              {announcements.slice(0, 3).map((a) => (
+                <div key={a.id} className="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-semibold text-sm text-slate-900">{a.title}</span>
+                    <Badge variant={a.priority === "urgent" ? "danger" : "neutral"} size="sm">
+                      {a.priority}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-slate-600 line-clamp-2">{a.body}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Phase 8 Modules: Assigned Hardware & Tasks */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
+          gap: 20,
+        }}
+      >
+        {/* Assigned IT Equipment */}
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>My IT Assets & Devices</CardTitle>
+              <CardDescription>Custody of enterprise equipment and devices</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {myAssets.length === 0 ? (
+              <p className="text-sm text-slate-500 py-4 text-center">No IT assets assigned to your profile.</p>
+            ) : (
+              <div className="space-y-3">
+                {myAssets.map((asset) => (
+                  <div key={asset.id} className="p-3 border border-slate-200 rounded-lg flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-sm text-slate-900">{asset.name}</p>
+                      <p className="text-xs text-slate-500 font-mono">{asset.assetTag} • {asset.model ?? "Standard"}</p>
+                    </div>
+                    <Badge variant="success" size="sm">
+                      {asset.condition.toUpperCase()}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Assigned Tasks */}
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>My Tasks ({pendingTasksCount} Pending)</CardTitle>
+              <CardDescription>Day-to-day operational assignments</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {tasks.length === 0 ? (
+              <p className="text-sm text-slate-500 py-4 text-center">No tasks currently assigned to you.</p>
+            ) : (
+              <div className="space-y-2">
+                {tasks.slice(0, 4).map((t) => (
+                  <div key={t.id} className="p-3 border border-slate-200 rounded-lg flex items-center justify-between">
+                    <div>
+                      <p className={`text-sm font-medium ${t.status === "completed" ? "line-through text-slate-400" : "text-slate-900"}`}>
+                        {t.title}
+                      </p>
+                      {t.dueDate && <p className="text-xs text-slate-500">Due: {t.dueDate}</p>}
+                    </div>
+                    <Badge variant={t.status === "completed" ? "success" : "neutral"} size="sm">
+                      {t.status.replace("_", " ")}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* My Digital Payslips Section */}
       <Card id="payslips">

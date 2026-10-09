@@ -779,3 +779,392 @@ export interface JobOffer {
 }
 
 
+
+// =============================================================================
+// 12. Phase 8: Operations & Talent Management Types
+// =============================================================================
+
+// 12.1 Onboarding
+export type OnboardingStatus = "pending" | "in_progress" | "awaiting_review" | "completed" | "cancelled";
+export type OnboardingTaskCategory = "general" | "documentation" | "it_setup" | "training" | "hr" | "manager";
+export type OnboardingTaskRole = "hr" | "it" | "manager" | "employee";
+export type OnboardingTaskStatus = "pending" | "in_progress" | "completed" | "skipped";
+
+export interface OnboardingTemplateItem {
+  title: string;
+  description?: string | undefined;
+  category: OnboardingTaskCategory;
+  assigned_role: OnboardingTaskRole;
+  is_required: boolean;
+  days_due: number;
+}
+
+export interface OnboardingChecklistTemplate {
+  id: UUID;
+  organizationId: UUID;
+  name: string;
+  description?: Nullable<string> | undefined;
+  isDefault: boolean;
+  items: OnboardingTemplateItem[];
+  isActive: boolean;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface OnboardingCase {
+  id: UUID;
+  organizationId: UUID;
+  employeeId: UUID;
+  candidateId?: Nullable<UUID> | undefined;
+  joiningDate: string; // YYYY-MM-DD
+  departmentId?: Nullable<UUID> | undefined;
+  designationId?: Nullable<UUID> | undefined;
+  branchId?: Nullable<UUID> | undefined;
+  reportingManagerId?: Nullable<UUID> | undefined;
+  status: OnboardingStatus;
+  notes?: Nullable<string> | undefined;
+  createdBy?: Nullable<UUID> | undefined;
+  completedAt?: Nullable<ISODateString> | undefined;
+  completedBy?: Nullable<UUID> | undefined;
+  cancelledAt?: Nullable<ISODateString> | undefined;
+  cancelledBy?: Nullable<UUID> | undefined;
+  cancellationReason?: Nullable<string> | undefined;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  departmentName?: string | undefined;
+  designationName?: string | undefined;
+  branchName?: string | undefined;
+  managerName?: string | undefined;
+  totalTasks?: number | undefined;
+  completedTasks?: number | undefined;
+  progressPercent?: number | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface OnboardingTask {
+  id: UUID;
+  organizationId: UUID;
+  caseId: UUID;
+  title: string;
+  description?: Nullable<string> | undefined;
+  category: OnboardingTaskCategory;
+  assignedRole: OnboardingTaskRole;
+  assignedTo?: Nullable<UUID> | undefined;
+  assigneeName?: string | undefined;
+  dueDate?: Nullable<string> | undefined;
+  isRequired: boolean;
+  status: OnboardingTaskStatus;
+  completedAt?: Nullable<ISODateString> | undefined;
+  completedBy?: Nullable<UUID> | undefined;
+  completedByName?: string | undefined;
+  notes?: Nullable<string> | undefined;
+  isOverdue?: boolean | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+// 12.2 Offboarding
+export type ExitType = "resignation" | "termination" | "contract_end" | "retirement";
+export type OffboardingStatus = "requested" | "under_review" | "approved" | "in_progress" | "clearance_pending" | "completed" | "rejected" | "cancelled";
+export type ClearanceDepartment = "it" | "finance" | "hr" | "department" | "admin";
+export type ClearanceStatus = "pending" | "cleared" | "flagged";
+
+export interface OffboardingCase {
+  id: UUID;
+  organizationId: UUID;
+  employeeId: UUID;
+  initiatedBy: UUID;
+  exitType: ExitType;
+  reason: string;
+  lastWorkingDate: string; // YYYY-MM-DD
+  noticePeriodDays: number;
+  status: OffboardingStatus;
+  managerApproved?: Nullable<boolean> | undefined;
+  managerApprovedBy?: Nullable<UUID> | undefined;
+  managerApprovedAt?: Nullable<ISODateString> | undefined;
+  hrApproved?: Nullable<boolean> | undefined;
+  hrApprovedBy?: Nullable<UUID> | undefined;
+  hrApprovedAt?: Nullable<ISODateString> | undefined;
+  exitInterviewNotes?: Nullable<string> | undefined;
+  accountDeactivated: boolean;
+  deactivatedAt?: Nullable<ISODateString> | undefined;
+  rejectionReason?: Nullable<string> | undefined;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  departmentName?: string | undefined;
+  designationName?: string | undefined;
+  totalClearanceItems?: number | undefined;
+  clearedItems?: number | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface OffboardingClearanceItem {
+  id: UUID;
+  organizationId: UUID;
+  caseId: UUID;
+  departmentType: ClearanceDepartment;
+  itemName: string;
+  status: ClearanceStatus;
+  clearedBy?: Nullable<UUID> | undefined;
+  clearedByName?: string | undefined;
+  clearedAt?: Nullable<ISODateString> | undefined;
+  comments?: Nullable<string> | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+// 12.3 Performance Management
+export type PerformanceCycleStatus = "draft" | "active" | "in_review" | "completed" | "closed";
+export type PerformanceGoalStatus = "not_started" | "in_progress" | "achieved" | "partially_achieved" | "missed";
+export type PerformanceReviewStatus = "draft" | "self_assessment" | "manager_review" | "awaiting_acknowledgement" | "completed";
+
+export interface PerformanceCycle {
+  id: UUID;
+  organizationId: UUID;
+  title: string;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  status: PerformanceCycleStatus;
+  description?: Nullable<string> | undefined;
+  createdBy?: Nullable<UUID> | undefined;
+  reviewCount?: number | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface PerformanceGoal {
+  id: UUID;
+  organizationId: UUID;
+  cycleId: UUID;
+  employeeId: UUID;
+  title: string;
+  description?: Nullable<string> | undefined;
+  weight: number;
+  targetDate?: Nullable<string> | undefined;
+  progressPercent: number;
+  status: PerformanceGoalStatus;
+  employeeName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface PerformanceReview {
+  id: UUID;
+  organizationId: UUID;
+  cycleId: UUID;
+  employeeId: UUID;
+  reviewerEmployeeId?: Nullable<UUID> | undefined;
+  status: PerformanceReviewStatus;
+  selfRating?: Nullable<number> | undefined;
+  selfFeedback?: Nullable<string> | undefined;
+  selfSubmittedAt?: Nullable<ISODateString> | undefined;
+  managerRating?: Nullable<number> | undefined;
+  managerFeedback?: Nullable<string> | undefined;
+  competenciesScore?: Nullable<number> | undefined;
+  managerSubmittedAt?: Nullable<ISODateString> | undefined;
+  employeeAcknowledged: boolean;
+  employeeAcknowledgedAt?: Nullable<ISODateString> | undefined;
+  employeeComments?: Nullable<string> | undefined;
+  isLocked: boolean;
+  cycleTitle?: string | undefined;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  reviewerName?: string | undefined;
+  departmentName?: string | undefined;
+  designationName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+// 12.4 Tasks
+export type TaskWorkflowType = "general" | "onboarding" | "offboarding" | "it" | "hr" | "compliance";
+export type TaskPriority = "low" | "medium" | "high" | "urgent";
+export type TaskStatus = "open" | "in_progress" | "blocked" | "completed" | "cancelled";
+
+export interface EmployeeTask {
+  id: UUID;
+  organizationId: UUID;
+  title: string;
+  description?: Nullable<string> | undefined;
+  creatorId: UUID;
+  assigneeId?: Nullable<UUID> | undefined;
+  relatedEmployeeId?: Nullable<UUID> | undefined;
+  workflowType: TaskWorkflowType;
+  priority: TaskPriority;
+  status: TaskStatus;
+  startDate?: Nullable<string> | undefined;
+  dueDate?: Nullable<string> | undefined;
+  completedAt?: Nullable<ISODateString> | undefined;
+  completionEvidence?: Nullable<string> | undefined;
+  creatorName?: string | undefined;
+  assigneeName?: string | undefined;
+  relatedEmployeeName?: string | undefined;
+  isOverdue?: boolean | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface TaskActivityLogItem {
+  id: UUID;
+  taskId: UUID;
+  actorId: UUID;
+  actorName?: string | undefined;
+  action: string;
+  notes?: Nullable<string> | undefined;
+  createdAt: ISODateString;
+}
+
+// 12.5 IT Assets
+export type AssetCategory = "laptop" | "desktop" | "monitor" | "mobile" | "network" | "software" | "peripherals" | "other";
+export type AssetStatus = "available" | "assigned" | "under_maintenance" | "lost" | "damaged" | "retired";
+export type AssetCondition = "excellent" | "good" | "fair" | "poor";
+
+export interface ITAsset {
+  id: UUID;
+  organizationId: UUID;
+  assetTag: string;
+  serialNumber?: Nullable<string> | undefined;
+  name: string;
+  category: AssetCategory;
+  manufacturer?: Nullable<string> | undefined;
+  model?: Nullable<string> | undefined;
+  purchaseDate?: Nullable<string> | undefined;
+  warrantyExpiry?: Nullable<string> | undefined;
+  location: string;
+  status: AssetStatus;
+  condition: AssetCondition;
+  specifications?: Record<string, unknown> | undefined;
+  currentEmployeeId?: Nullable<UUID> | undefined;
+  currentEmployeeName?: string | undefined;
+  currentAssignmentId?: Nullable<UUID> | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface AssetAssignment {
+  id: UUID;
+  organizationId: UUID;
+  assetId: UUID;
+  employeeId: UUID;
+  assignedBy?: Nullable<UUID> | undefined;
+  assignedDate: string; // YYYY-MM-DD
+  returnDueDate?: Nullable<string> | undefined;
+  returnedDate?: Nullable<string> | undefined;
+  returnedCondition?: Nullable<string> | undefined;
+  isActive: boolean;
+  notes?: Nullable<string> | undefined;
+  assetName?: string | undefined;
+  assetTag?: string | undefined;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  assignedByName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface AssetMaintenanceRecord {
+  id: UUID;
+  organizationId: UUID;
+  assetId: UUID;
+  maintenanceType: "repair" | "upgrade" | "inspection" | "cleaning";
+  serviceProvider?: Nullable<string> | undefined;
+  cost: number;
+  startDate: string; // YYYY-MM-DD
+  endDate?: Nullable<string> | undefined;
+  status: "scheduled" | "in_progress" | "completed";
+  notes?: Nullable<string> | undefined;
+  assetName?: string | undefined;
+  assetTag?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+// 12.6 Documents
+export type DocumentCategory = "identification" | "academic" | "employment_contract" | "payroll_tax" | "certification" | "policy" | "performance" | "medical" | "other";
+export type DocumentVerificationStatus = "pending" | "verified" | "rejected";
+
+export interface EmployeeDocument {
+  id: UUID;
+  organizationId: UUID;
+  employeeId?: Nullable<UUID> | undefined;
+  title: string;
+  category: DocumentCategory;
+  description?: Nullable<string> | undefined;
+  filePath: string;
+  fileName: string;
+  fileSizeBytes: number;
+  mimeType: string;
+  uploadedBy: UUID;
+  expiryDate?: Nullable<string> | undefined;
+  verificationStatus: DocumentVerificationStatus;
+  verifiedBy?: Nullable<UUID> | undefined;
+  verifiedAt?: Nullable<ISODateString> | undefined;
+  isConfidential: boolean;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  uploaderName?: string | undefined;
+  verifiedByName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+// 12.7 Announcements
+export type AnnouncementStatus = "draft" | "published" | "archived";
+export type AnnouncementTargetType = "all" | "department" | "branch" | "role";
+export type AnnouncementPriority = "normal" | "high" | "urgent";
+
+export interface Announcement {
+  id: UUID;
+  organizationId: UUID;
+  title: string;
+  body: string;
+  authorId: UUID;
+  status: AnnouncementStatus;
+  targetType: AnnouncementTargetType;
+  targetId?: Nullable<string> | undefined;
+  priority: AnnouncementPriority;
+  publishedAt?: Nullable<ISODateString> | undefined;
+  expiresAt?: Nullable<ISODateString> | undefined;
+  authorName?: string | undefined;
+  isRead?: boolean | undefined;
+  targetLabel?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface AnnouncementRead {
+  id: UUID;
+  announcementId: UUID;
+  profileId: UUID;
+  readAt: ISODateString;
+}
+
+// 12.8 Shared Approvals
+export type SharedApprovalRequestType = "onboarding_closure" | "offboarding_clearance" | "asset_assignment" | "document_verification" | "general";
+export type SharedApprovalStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export interface SharedApproval {
+  id: UUID;
+  organizationId: UUID;
+  requestType: SharedApprovalRequestType;
+  entityId: UUID;
+  requesterId: UUID;
+  assignedRole: string;
+  assignedApproverId?: Nullable<UUID> | undefined;
+  status: SharedApprovalStatus;
+  decisionNotes?: Nullable<string> | undefined;
+  decidedAt?: Nullable<ISODateString> | undefined;
+  requesterName?: string | undefined;
+  entityTitle?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+// Convenient Aliases
+export type DocumentItem = EmployeeDocument;
+export type Asset = ITAsset;
+export type AssetMaintenance = AssetMaintenanceRecord;
+export type ReviewStatus = PerformanceReviewStatus;
+

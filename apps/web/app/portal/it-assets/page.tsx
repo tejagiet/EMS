@@ -1,192 +1,80 @@
-import { UnavailableChartCard } from "@/components/charts/UnavailableChartCard";
-import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
-import { MetricCard } from "@/components/ui/MetricCard";
-import { SchemaDependencyNotice } from "@/components/ui/SchemaDependencyNotice";
 import { verifyPortalAccess } from "@/lib/auth/session";
-import { getItAssetsAnalytics, type SettingItem } from "@/lib/data/analytics";
-import { Building2, Settings, Users } from "lucide-react";
+import { getAssets } from "@/lib/data/assets";
+import { AssetsClient } from "@/components/assets/AssetsClient";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { createClient } from "@/lib/supabase/server";
+import { Laptop, CheckCircle2, RotateCcw, AlertTriangle } from "lucide-react";
 
 export const metadata = {
-  title: "IT & Infrastructure Assets | EMS",
+  title: "IT Assets & Hardware Inventory | EMS",
 };
 
 export default async function ItAssetsDashboard() {
   const context = await verifyPortalAccess("it_assets_manager");
   const orgId = context.activeOrganization?.id ?? "";
-  const data = await getItAssetsAnalytics(orgId);
 
-  const settingColumns: DataTableColumn<SettingItem>[] = [
-    {
-      key: "key",
-      header: "Configuration Parameter",
-      sortable: true,
-      render: (row) => <code style={{ fontSize: "0.82rem", fontWeight: 600 }}>{row.key}</code>,
-    },
-    {
-      key: "value",
-      header: "Configured Value",
-      render: (row) => (
-        <pre
-          style={{
-            fontSize: "0.78rem",
-            background: "var(--background)",
-            padding: "4px 8px",
-            borderRadius: 4,
-            margin: 0,
-            overflowX: "auto",
-          }}
-        >
-          {JSON.stringify(row.value)}
-        </pre>
-      ),
-    },
-  ];
+  const supabase = await createClient();
+  const [assets, empRes, profRes] = await Promise.all([
+    getAssets(orgId),
+    supabase.from("employees").select("id, employee_code, profile_id").eq("organization_id", orgId),
+    supabase.from("profiles").select("id, full_name"),
+  ]);
+
+  const profMap = new Map((profRes.data ?? []).map((p) => [p.id, p.full_name]));
+  const employeeOptions = (empRes.data ?? []).map((e) => ({
+    id: e.id,
+    name: `${e.profile_id ? profMap.get(e.profile_id) ?? "Employee" : "Employee"} (${e.employee_code})`,
+  }));
+
+  const totalAssets = assets.length;
+  const assignedAssets = assets.filter((a) => a.status === "assigned").length;
+  const availableAssets = assets.filter((a) => a.status === "available").length;
+  const maintenanceAssets = assets.filter((a) => a.status === "under_maintenance").length;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div className="space-y-6">
       <div>
-        <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--primary)", margin: 0 }}>
-          IT & Hardware Asset Management
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 4 }}>
-          Workstation inventory, hardware lifecycle tracking, and device asset assignments.
+        <h1 className="text-2xl font-bold text-slate-900">IT & Hardware Asset Management</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          Hardware workstation tracking, check-outs, return condition inspections, and maintenance.
         </p>
       </div>
 
       {/* KPI Cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
-          gap: 16,
-        }}
-      >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          label="Active User Accounts"
-          value={data.activeProfilesCount}
-          subtitle="Users eligible for IT provisioning"
-          icon={<Users size={20} />}
+          label="Total Hardware"
+          value={totalAssets}
+          subtitle="Registered devices in tenant"
+          icon={<Laptop className="w-5 h-5" />}
         />
         <MetricCard
-          label="Provisioned Campuses"
-          value={data.provisioningBranches}
-          subtitle="Branches with network presence"
-          icon={<Building2 size={20} />}
+          label="Assigned to Staff"
+          value={assignedAssets}
+          subtitle="In active deployment"
+          icon={<CheckCircle2 className="w-5 h-5 text-indigo-600" />}
         />
         <MetricCard
-          label="Total Hardware Assets"
-          isUnavailable
-          requiredPhase={8}
-          unavailableReason="Awaiting Phase 8 Asset inventory tables."
+          label="Available in Store"
+          value={availableAssets}
+          subtitle="Ready for provisioning"
+          icon={<RotateCcw className="w-5 h-5 text-emerald-600" />}
         />
         <MetricCard
-          label="Pending Device Requests"
-          isUnavailable
-          requiredPhase={8}
-          unavailableReason="Awaiting Phase 8 Asset assignment ledger."
+          label="Under Maintenance"
+          value={maintenanceAssets}
+          subtitle="Repairs and diagnostics"
+          icon={<AlertTriangle className="w-5 h-5 text-amber-600" />}
         />
       </div>
 
-      {/* Chart & Dependency Section */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))",
-          gap: 20,
-        }}
-      >
-        <UnavailableChartCard
-          title="Hardware Asset Allocation by Category"
-          description="Distribution of physical laptops, workstations, monitors, and mobile peripherals across divisions"
-          requiredPhase={8}
-          domainModule="Hardware Assets & Device Inventory"
-          targetTables={["assets", "asset_categories", "asset_assignments", "asset_maintenance"]}
-        />
-
-        <Card>
-          <CardHeader>
-            <div>
-              <CardTitle>IT Provisioning Infrastructure</CardTitle>
-              <CardDescription>Enterprise deployment endpoints</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent
-            style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: "0.85rem" }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                borderBottom: "1px solid var(--border)",
-                paddingBottom: 8,
-              }}
-            >
-              <span style={{ color: "var(--text-muted)" }}>Active Tenant</span>
-              <strong>{context.activeOrganization?.name ?? "Main Organization"}</strong>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                borderBottom: "1px solid var(--border)",
-                paddingBottom: 8,
-              }}
-            >
-              <span style={{ color: "var(--text-muted)" }}>Departments Requiring Workstations</span>
-              <span style={{ fontWeight: 600 }}>{data.provisioningDepartments} Departments</span>
-            </div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                borderBottom: "1px solid var(--border)",
-                paddingBottom: 8,
-              }}
-            >
-              <span style={{ color: "var(--text-muted)" }}>Campus Locations</span>
-              <span style={{ fontWeight: 600 }}>{data.provisioningBranches} Branches</span>
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: "var(--text-muted)" }}>Asset Tracking Schema</span>
-              <Badge label="PHASE 8 TARGET" variant="warning" size="sm" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Schema Dependency Notice */}
-      <SchemaDependencyNotice
-        moduleName="IT Asset & Device Lifecycle Engine"
-        requiredPhase={8}
-        description="Serial number tracking, manufacturer warranties, laptop check-in/check-out signatures, and disposal records deploy in Phase 8."
-        plannedSchema={["assets", "asset_assignments", "asset_requests", "maintenance_logs"]}
+      {/* Live Assets Component */}
+      <AssetsClient
+        initialAssets={assets}
+        employees={employeeOptions}
+        organizationId={orgId}
+        currentUserId={context.userId}
       />
-
-      {/* IT Configurations Table */}
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Settings size={18} /> Organization IT Configurations
-            </CardTitle>
-            <CardDescription>
-              Technical settings and parameters defined for this tenant (`settings` table)
-            </CardDescription>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <DataTable
-            data={data.itSettings}
-            columns={settingColumns}
-            keyExtractor={(row) => (typeof row.id === "string" ? row.id : "")}
-            pageSize={5}
-            emptyTitle="No custom IT settings defined"
-            emptyDescription="Organization is utilizing standard default IT infrastructure parameters."
-          />
-        </CardContent>
-      </Card>
     </div>
   );
 }

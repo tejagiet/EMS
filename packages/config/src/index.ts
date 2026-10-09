@@ -365,6 +365,36 @@ export const PORTAL_CONFIGS: Record<PortalRole, PortalConfig> = {
         requiredPermission: "leave.approve",
       },
       {
+        id: "onboarding",
+        label: "Onboarding Cases",
+        path: "/portal/hr/onboarding",
+        requiredPermission: "employee.write",
+      },
+      {
+        id: "offboarding",
+        label: "Offboarding & Exits",
+        path: "/portal/hr/offboarding",
+        requiredPermission: "employee.write",
+      },
+      {
+        id: "performance",
+        label: "Performance Appraisals",
+        path: "/portal/hr/performance",
+        requiredPermission: "employee.write",
+      },
+      {
+        id: "documents",
+        label: "Document Centre",
+        path: "/portal/hr/documents",
+        requiredPermission: "document.write",
+      },
+      {
+        id: "announcements",
+        label: "Announcements",
+        path: "/portal/hr/announcements",
+        requiredPermission: "organization.write",
+      },
+      {
         id: "import_export",
         label: "Import & Export",
         path: "/portal/hr/import-export",

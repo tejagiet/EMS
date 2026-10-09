@@ -456,3 +456,71 @@
 - [x] Strict TypeScript: `pnpm typecheck` passed (0 errors across all 9 workspaces)
 - [x] Next.js 15 production build: `pnpm --filter @ems/web build` passed (29 routes cleanly generated)
 
+---
+
+## Phase 8 — Operations and Talent Management Modules
+
+> **Status:** ✅ Complete — all acceptance criteria verified
+
+### Checklist
+
+#### Database Schema, Triggers & RPCs (Phase 8)
+- [x] `supabase/migrations/20261009000008_phase8_operations_and_talent.sql`:
+  - 17 Tables created: `onboarding_checklist_templates`, `onboarding_cases`, `onboarding_tasks`, `offboarding_cases`, `offboarding_clearance_items`, `performance_cycles`, `performance_goals`, `performance_reviews`, `employee_tasks`, `task_activity_log`, `assets`, `asset_assignments`, `asset_maintenance`, `documents`, `announcements`, `announcement_reads`, `shared_approvals`
+  - Notification Types updated: Added 13 Phase 8 event triggers
+  - Multi-level RLS policies on all 17 tables enforcing organization boundary scoping
+  - Transactional Database RPCs:
+    - `public.create_onboarding_case()`: Clones template tasks, prevents duplicate active cases per employee
+    - `public.complete_onboarding_case()`: Prohibits completion while required checklist tasks remain incomplete
+    - `public.initiate_offboarding_case()`: Generates department clearances, links active IT equipment return checkpoints
+    - `public.process_offboarding_decision()`: Requires all clearances to be cleared, atomically deactivates employee account
+    - `public.assign_asset()`: Enforces 1 active assignment per hardware asset, blocks retired/under-maintenance assets
+    - `public.return_asset()`: Deactivates assignment, restores availability, updates hardware condition log
+    - `public.submit_performance_review()`: Enforces 1.0–5.0 rating bounds, supports self-assessment, manager review, and immutable locking
+  - Deterministic dev seed data appended to `supabase/seed.sql`
+
+#### Shared Monorepo Packages
+- [x] `packages/types/src/index.ts`: Full TypeScript definitions and convenient aliases for Onboarding, Offboarding, Performance, Tasks, IT Assets, Documents, Announcements, and Approvals
+- [x] `packages/validation/src/index.ts`: Zod validation schemas for all Phase 8 operations
+- [x] `packages/config/src/index.ts`: Added navigation items for onboarding, offboarding, performance, documents, and announcements to `hr_manager` role
+
+#### Server Actions & Data Layer
+- [x] `apps/web/lib/data/onboarding.ts` & `onboarding-actions.ts`: Cases listing, task updates, RPC completion, and CSV export
+- [x] `apps/web/lib/data/offboarding.ts` & `offboarding-actions.ts`: Exit cases, clearances tracker, RPC deactivation, and CSV export
+- [x] `apps/web/lib/data/assets.ts` & `assets-actions.ts`: IT hardware inventory, assignments, returns, and CSV export
+- [x] `apps/web/lib/data/performance.ts` & `performance-actions.ts`: Appraisal cycles, goals, 1.0–5.0 reviews, and CSV export
+- [x] `apps/web/lib/data/tasks.ts` & `tasks-actions.ts`: Operational tasks console, audit logs, and CSV export
+- [x] `apps/web/lib/data/documents.ts` & `documents-actions.ts`: Document repository, verification/rejection, and CSV export
+- [x] `apps/web/lib/data/announcements.ts` & `announcements-actions.ts`: Bulletin notices, audience scoping, and read tracking
+
+#### UI Components & Portals
+- [x] `OnboardingClient`: Cases directory, checklist tasks inspector, progress percentage bar, and closure modal
+- [x] `OffboardingClient`: Exit cases table, multi-department clearance tracker, linked IT assets check, and account deactivation modal
+- [x] `AssetsClient`: Hardware inventory table, new asset modal, assignment modal, condition return modal, and maintenance logs
+- [x] `PerformanceClient`: Cycles, measurable goals, and appraisal reviews with rating bounds
+- [x] `TasksClient`: Operational task console with priorities and status updates
+- [x] `DocumentsClient`: Document repository with categories and verification actions
+- [x] `AnnouncementsClient`: Notice board with audience badges and read receipts
+- [x] Connected Portals:
+  - [x] IT & Hardware Asset Management (`/portal/it-assets`): Connected live hardware inventory and assignment engine
+  - [x] HR Sub-Portals:
+    - `/portal/hr/onboarding`
+    - `/portal/hr/offboarding`
+    - `/portal/hr/performance`
+    - `/portal/hr/documents`
+    - `/portal/hr/announcements`
+  - [x] Employee Self-Service Workspace (`/portal/employee`): Connected My Tasks, Assigned Hardware Assets, and Institutional Notices
+
+#### Automated Testing & Verification
+- [x] Vitest test suite (`tests/phase8-operations-and-talent.test.ts`): 13 comprehensive unit and security tests verifying:
+  - Onboarding closure guards for incomplete required tasks
+  - Offboarding clearance blockers before final exit approval
+  - Asset assignment guards (available status, single active assignment, retirement block)
+  - Performance appraisal 1.0–5.0 rating scale enforcement
+  - Document upload and category schema validation
+  - Announcement audience scoping
+  - Formula injection sanitization for all CSV exports
+- [x] Vitest total pass rate: 89/89 tests passing across 7 test suites (100% pass rate)
+- [x] TypeScript validation: `pnpm typecheck` passed (0 errors across all 9 workspaces)
+- [x] Next.js 15 production build: `pnpm --filter @ems/web build` passed (34 routes cleanly generated)
+

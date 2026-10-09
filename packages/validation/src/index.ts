@@ -462,3 +462,200 @@ export const hireCandidateSchema = z.object({
 export type HireCandidateInput = z.infer<typeof hireCandidateSchema>;
 
 
+
+// =============================================================================
+// SECTION 13: Phase 8 Operations & Talent Management Validation Schemas
+// =============================================================================
+
+// 13.1 Onboarding
+export const onboardingCaseCreateSchema = z.object({
+  employeeId: z.string().uuid("Invalid employee ID"),
+  candidateId: z.string().uuid("Invalid candidate ID").optional().nullable(),
+  joiningDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Joining date must be YYYY-MM-DD"),
+  departmentId: z.string().uuid("Invalid department ID").optional().nullable(),
+  designationId: z.string().uuid("Invalid designation ID").optional().nullable(),
+  branchId: z.string().uuid("Invalid branch ID").optional().nullable(),
+  reportingManagerId: z.string().uuid("Invalid reporting manager ID").optional().nullable(),
+  templateId: z.string().uuid("Invalid template ID").optional().nullable(),
+  notes: z.string().max(1000).optional().nullable(),
+});
+
+export type OnboardingCaseCreateInput = z.infer<typeof onboardingCaseCreateSchema>;
+
+export const onboardingTaskUpdateSchema = z.object({
+  taskId: z.string().uuid("Invalid task ID"),
+  status: z.enum(["pending", "in_progress", "completed", "skipped"]),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type OnboardingTaskUpdateInput = z.infer<typeof onboardingTaskUpdateSchema>;
+
+export const onboardingCompleteSchema = z.object({
+  caseId: z.string().uuid("Invalid case ID"),
+  notes: z.string().max(1000).optional().nullable(),
+});
+
+export type OnboardingCompleteInput = z.infer<typeof onboardingCompleteSchema>;
+
+// 13.2 Offboarding
+export const offboardingInitiateSchema = z.object({
+  employeeId: z.string().uuid("Invalid employee ID"),
+  exitType: z.enum(["resignation", "termination", "contract_end", "retirement"]),
+  reason: z.string().min(5, "Exit reason must be at least 5 characters").max(1000),
+  lastWorkingDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Last working date must be YYYY-MM-DD"),
+  noticePeriodDays: z.number().int().min(0).max(180).default(30),
+});
+
+export type OffboardingInitiateInput = z.infer<typeof offboardingInitiateSchema>;
+
+export const offboardingClearanceUpdateSchema = z.object({
+  clearanceItemId: z.string().uuid("Invalid clearance item ID"),
+  status: z.enum(["pending", "cleared", "flagged"]),
+  comments: z.string().max(500).optional().nullable(),
+});
+
+export type OffboardingClearanceUpdateInput = z.infer<typeof offboardingClearanceUpdateSchema>;
+
+export const offboardingDecisionSchema = z.object({
+  caseId: z.string().uuid("Invalid case ID"),
+  step: z.enum(["manager_approval", "hr_approval", "complete_exit"]),
+  decision: z.enum(["approve", "reject"]),
+  notes: z.string().max(1000).optional().nullable(),
+});
+
+export type OffboardingDecisionInput = z.infer<typeof offboardingDecisionSchema>;
+
+// 13.3 Performance
+export const performanceCycleCreateSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters").max(200),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be YYYY-MM-DD"),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "End date must be YYYY-MM-DD"),
+  description: z.string().max(1000).optional().nullable(),
+});
+
+export type PerformanceCycleCreateInput = z.infer<typeof performanceCycleCreateSchema>;
+
+export const performanceGoalSchema = z.object({
+  cycleId: z.string().uuid("Invalid cycle ID"),
+  employeeId: z.string().uuid("Invalid employee ID"),
+  title: z.string().min(3, "Title must be at least 3 characters").max(200),
+  description: z.string().max(1000).optional().nullable(),
+  weight: z.number().min(0).max(100),
+  targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Target date must be YYYY-MM-DD").optional().nullable(),
+  progressPercent: z.number().int().min(0).max(100).default(0),
+  status: z.enum(["not_started", "in_progress", "achieved", "partially_achieved", "missed"]).default("in_progress"),
+});
+
+export type PerformanceGoalInput = z.infer<typeof performanceGoalSchema>;
+
+export const performanceReviewSubmitSchema = z.object({
+  reviewId: z.string().uuid("Invalid review ID"),
+  stage: z.enum(["self", "manager", "acknowledge"]),
+  rating: z.number().min(1.0, "Rating cannot be less than 1.0").max(5.0, "Rating cannot exceed 5.0"),
+  feedback: z.string().min(5, "Feedback comments required").max(3000),
+  competenciesScore: z.number().min(1.0).max(5.0).optional().nullable(),
+});
+
+export type PerformanceReviewSubmitInput = z.infer<typeof performanceReviewSubmitSchema>;
+
+// 13.4 Tasks
+export const employeeTaskCreateSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters").max(200),
+  description: z.string().max(2000).optional().nullable(),
+  assigneeId: z.string().uuid("Invalid assignee ID").optional().nullable(),
+  relatedEmployeeId: z.string().uuid("Invalid related employee ID").optional().nullable(),
+  workflowType: z.enum(["general", "onboarding", "offboarding", "it", "hr", "compliance"]).default("general"),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be YYYY-MM-DD").optional().nullable(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Due date must be YYYY-MM-DD").optional().nullable(),
+});
+
+export type EmployeeTaskCreateInput = z.infer<typeof employeeTaskCreateSchema>;
+
+export const employeeTaskUpdateSchema = z.object({
+  taskId: z.string().uuid("Invalid task ID"),
+  status: z.enum(["open", "in_progress", "blocked", "completed", "cancelled"]),
+  completionEvidence: z.string().max(1000).optional().nullable(),
+});
+
+export type EmployeeTaskUpdateInput = z.infer<typeof employeeTaskUpdateSchema>;
+
+// 13.5 IT Assets
+export const assetCreateSchema = z.object({
+  assetTag: z.string().min(3, "Asset tag must be at least 3 characters").max(50),
+  name: z.string().min(2, "Asset name required").max(150),
+  category: z.enum(["laptop", "desktop", "monitor", "mobile", "network", "software", "peripherals", "other"]),
+  serialNumber: z.string().max(100).optional().nullable(),
+  manufacturer: z.string().max(100).optional().nullable(),
+  model: z.string().max(100).optional().nullable(),
+  purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Purchase date must be YYYY-MM-DD").optional().nullable(),
+  warrantyExpiry: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Warranty date must be YYYY-MM-DD").optional().nullable(),
+  location: z.string().max(100).default("Main Campus"),
+  condition: z.enum(["excellent", "good", "fair", "poor"]).default("good"),
+  specifications: z.record(z.unknown()).optional(),
+});
+
+export type AssetCreateInput = z.infer<typeof assetCreateSchema>;
+
+export const assetAssignSchema = z.object({
+  assetId: z.string().uuid("Invalid asset ID"),
+  employeeId: z.string().uuid("Invalid employee ID"),
+  assignedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Assigned date must be YYYY-MM-DD"),
+  returnDueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Return due date must be YYYY-MM-DD").optional().nullable(),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type AssetAssignInput = z.infer<typeof assetAssignSchema>;
+
+export const assetReturnSchema = z.object({
+  assignmentId: z.string().uuid("Invalid assignment ID"),
+  returnedCondition: z.enum(["excellent", "good", "fair", "poor"]).default("good"),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type AssetReturnInput = z.infer<typeof assetReturnSchema>;
+
+// 13.6 Documents
+export const documentUploadSchema = z.object({
+  title: z.string().min(3, "Document title required").max(200),
+  category: z.enum(["identification", "academic", "employment_contract", "payroll_tax", "certification", "policy", "performance", "medical", "other"]),
+  employeeId: z.string().uuid("Invalid employee ID").optional().nullable(),
+  filePath: z.string().min(1, "File path required"),
+  fileName: z.string().min(1, "File name required"),
+  fileSizeBytes: z.number().int().positive().max(26214400, "Maximum file size is 25MB"),
+  mimeType: z.string().min(1, "MIME type required"),
+  expiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Expiry date must be YYYY-MM-DD").optional().nullable(),
+  isConfidential: z.boolean().default(true),
+});
+
+export type DocumentUploadInput = z.infer<typeof documentUploadSchema>;
+
+export const documentVerifySchema = z.object({
+  documentId: z.string().uuid("Invalid document ID"),
+  verificationStatus: z.enum(["verified", "rejected"]),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type DocumentVerifyInput = z.infer<typeof documentVerifySchema>;
+
+// 13.7 Announcements
+export const announcementCreateSchema = z.object({
+  title: z.string().min(3, "Title must be at least 3 characters").max(250),
+  body: z.string().min(5, "Announcement body required"),
+  targetType: z.enum(["all", "department", "branch", "role"]).default("all"),
+  targetId: z.string().max(100).optional().nullable(),
+  priority: z.enum(["normal", "high", "urgent"]).default("normal"),
+  publishedAt: z.string().optional().nullable(),
+  expiresAt: z.string().optional().nullable(),
+});
+
+export type AnnouncementCreateInput = z.infer<typeof announcementCreateSchema>;
+
+// 13.8 Shared Approvals
+export const sharedApprovalDecisionSchema = z.object({
+  approvalId: z.string().uuid("Invalid approval ID"),
+  decision: z.enum(["approve", "reject", "cancelled"]),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+export type SharedApprovalDecisionInput = z.infer<typeof sharedApprovalDecisionSchema>;

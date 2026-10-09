@@ -630,3 +630,119 @@ VALUES
    'technical', NOW() + INTERVAL '2 days', 60, 'Dr. K. Srinivas (HOD AI)', 'scheduled', NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
+
+-- ============================================================
+-- SECTION 15: PHASE 8 OPERATIONS & TALENT SEED DATA
+-- ============================================================
+
+-- 15.1 Onboarding Checklist Template
+INSERT INTO public.onboarding_checklist_templates (
+  id, organization_id, name, description, is_default, items, is_active, created_at, updated_at
+)
+VALUES
+  ('00000012-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001',
+   'Standard Faculty & Staff Onboarding Template',
+   'Standard checklist for newly hired academic and technical staff members.',
+   true,
+   '[
+     {"title": "Verify Educational Credentials & Identity Documents", "description": "HR team checks original degree certificates and Aadhaar card.", "category": "documentation", "assigned_role": "hr", "is_required": true, "days_due": 3},
+     {"title": "Provision Campus Email & Active Directory Credentials", "description": "IT administrator creates institutional email and portal login.", "category": "it_setup", "assigned_role": "it", "is_required": true, "days_due": 2},
+     {"title": "Allocate Workstation Laptop & Peripherals", "description": "Issue configured laptop with AI software environments.", "category": "it_setup", "assigned_role": "it", "is_required": true, "days_due": 4},
+     {"title": "Department Orientation & Curriculum Briefing", "description": "HOD conducts orientation on teaching load and research labs.", "category": "manager", "assigned_role": "manager", "is_required": true, "days_due": 7},
+     {"title": "Bank Account & PF Details Submission", "description": "Employee provides salary account details for direct deposit.", "category": "general", "assigned_role": "employee", "is_required": true, "days_due": 5}
+   ]'::jsonb,
+   true, NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- 15.2 IT Assets
+INSERT INTO public.assets (
+  id, organization_id, asset_tag, serial_number, name, category,
+  manufacturer, model, purchase_date, warranty_expiry, location,
+  status, condition, specifications, created_at, updated_at
+)
+VALUES
+  ('00000013-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001',
+   'AST-GIET-LT-001', 'PF2ABC01', 'Lenovo ThinkPad T14 Gen 3', 'laptop',
+   'Lenovo', 'ThinkPad T14', '2025-06-15', '2028-06-15', 'AI Department Lab',
+   'assigned', 'excellent', '{"cpu": "Intel Core i7", "ram": "32GB", "storage": "1TB SSD"}'::jsonb,
+   NOW(), NOW()),
+
+  ('00000013-0000-0000-0000-000000000002', '00000001-0000-0000-0000-000000000002',
+   'AST-GIET-WS-002', 'DL-WS-8902', 'Dell Precision 3660 AI Workstation', 'desktop',
+   'Dell', 'Precision 3660', '2025-08-10', '2028-08-10', 'Deep Learning Lab',
+   'available', 'good', '{"cpu": "Intel Xeon", "gpu": "RTX 4090 24GB", "ram": "64GB"}'::jsonb,
+   NOW(), NOW()),
+
+  ('00000013-0000-0000-0000-000000000003', '00000001-0000-0000-0000-000000000001',
+   'AST-GIET-MN-003', 'MN-4K-2701', 'Dell UltraSharp 27" 4K Monitor', 'monitor',
+   'Dell', 'U2723QE', '2025-09-01', '2028-09-01', 'Faculty Room 204',
+   'available', 'excellent', '{"resolution": "3840x2160", "panel": "IPS Black"}'::jsonb,
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- 15.3 Asset Assignment
+INSERT INTO public.asset_assignments (
+  id, organization_id, asset_id, employee_id, assigned_by,
+  assigned_date, return_due_date, is_active, notes, created_at, updated_at
+)
+VALUES
+  ('00000014-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001',
+   '00000013-0000-0000-0000-000000000001', '00000009-0000-0000-0000-000000000003',
+   '00000008-0000-0000-0000-000000000001', '2026-01-10', '2027-01-10',
+   true, 'Allocated for AI Department coursework and development.', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- 15.4 Performance Cycle & Goals
+INSERT INTO public.performance_cycles (
+  id, organization_id, title, start_date, end_date, status, description, created_at, updated_at
+)
+VALUES
+  ('00000015-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001',
+   'Academic Year 2026 Annual Faculty Review', '2026-01-01', '2026-12-31',
+   'active', 'Annual evaluation cycle covering teaching efficacy, research papers, and institutional contribution.',
+   NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.performance_goals (
+  id, organization_id, cycle_id, employee_id, title, description,
+  weight, target_date, progress_percent, status, created_at, updated_at
+)
+VALUES
+  ('00000016-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001',
+   '00000015-0000-0000-0000-000000000001', '00000009-0000-0000-0000-000000000003',
+   'Publish 2 Research Papers in Scopus/IEEE Journals',
+   'Publish peer-reviewed research in applied AI or computer vision.',
+   40.00, '2026-11-30', 50, 'in_progress', NOW(), NOW()),
+
+  ('00000016-0000-0000-0000-000000000002', '00000001-0000-0000-0000-000000000001',
+   '00000015-0000-0000-0000-000000000001', '00000009-0000-0000-0000-000000000003',
+   'Maintain 95%+ Practical Lab Class Attendance & Student Rating',
+   'Conduct scheduled AI lab sessions and guide diploma student capstones.',
+   30.00, '2026-10-31', 80, 'in_progress', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- 15.5 Announcements
+INSERT INTO public.announcements (
+  id, organization_id, title, body, author_id, status, target_type, priority,
+  published_at, expires_at, created_at, updated_at
+)
+VALUES
+  ('00000017-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001',
+   'GIET Polytechnic Annual Industrial AI Symposium 2026',
+   'We are pleased to announce our annual student symposium on November 14, 2026. All faculty and staff are invited to register student capstone teams.',
+   '00000008-0000-0000-0000-000000000001', 'published', 'all', 'high',
+   NOW(), NOW() + INTERVAL '30 days', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
+
+-- 15.6 Employee Tasks
+INSERT INTO public.employee_tasks (
+  id, organization_id, title, description, creator_id, assignee_id,
+  workflow_type, priority, status, start_date, due_date, created_at, updated_at
+)
+VALUES
+  ('00000018-0000-0000-0000-000000000001', '00000001-0000-0000-0000-000000000001',
+   'Prepare Mid-Semester Laboratory Evaluation Roster',
+   'Complete marking rubric for AI Diploma third-year lab coursework.',
+   '00000008-0000-0000-0000-000000000004', '00000008-0000-0000-0000-000000000003',
+   'general', 'high', 'open', '2026-10-10', '2026-10-25', NOW(), NOW())
+ON CONFLICT (id) DO NOTHING;
