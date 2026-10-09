@@ -7,11 +7,15 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "jsx": "react-native",
+    "rootDir": ".",
+    "outDir": "./dist",
     "noEmit": true,
+    "composite": false,
+    "incremental": false,
     "strict": true,
     "allowJs": true,
     "verbatimModuleSyntax": false
   },
   "include": ["**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", ".expo", "android", "ios"]
+  "exclude": ["node_modules", ".expo", "android", "ios", "dist"]
 }

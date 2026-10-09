@@ -22,6 +22,14 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "test:ci": "pnpm -r test --reporter=verbose",
+    "db:start": "npx supabase start",
+    "db:stop": "npx supabase stop",
+    "db:status": "npx supabase status",
+    "db:migrate": "npx supabase db push",
+    "db:seed": "npx supabase db reset --linked",
+    "db:test": "npx supabase test db",
+    "db:reset": "npx supabase db reset",
+    "db:new-migration": "npx supabase migration new",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml,css}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml,css}\" --ignore-path .gitignore",
     "clean": "pnpm -r clean && pnpm store prune",
@@ -32,6 +40,7 @@
     "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.0.0",
     "prettier": "^3.3.0",
+    "supabase": "^2.0.0",
     "typescript": "^5.5.0",
     "typescript-eslint": "^8.0.0"
   }
