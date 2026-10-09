@@ -1,10 +1,12 @@
-import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { MetricCard } from "@/components/ui/MetricCard";
-import { SchemaDependencyNotice } from "@/components/ui/SchemaDependencyNotice";
 import { verifyPortalAccess } from "@/lib/auth/session";
 import { getEmployeeSelfDetails } from "@/lib/data/analytics";
-import { Briefcase, Building2, Calendar, CheckCircle2, Mail, MapPin, User } from "lucide-react";
+import { getTodayAttendanceStatus, getEmployeeAttendanceHistory } from "@/lib/data/attendance";
+import { getEmployeeLeaveBalances, getEmployeeLeaveRequests } from "@/lib/data/leave";
+import { EmployeeSelfClient } from "@/components/attendance/EmployeeSelfClient";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { User, Briefcase, Building2, MapPin, Calendar, Mail, Clock, ShieldCheck, CheckCircle2 } from "lucide-react";
 
 export const metadata = {
   title: "Employee Self-Service Portal | EMS",
@@ -12,9 +14,21 @@ export const metadata = {
 
 export default async function EmployeeDashboard() {
   const context = await verifyPortalAccess("employee");
+  const orgId = context.activeOrganization?.id ?? "";
   const linkedEmployee = context.linkedEmployee;
 
-  const empDetails = linkedEmployee ? await getEmployeeSelfDetails(linkedEmployee.id) : null;
+  const [empDetails, clockStatus, balances, attendanceHistory, leaveRequests] = await Promise.all([
+    linkedEmployee ? getEmployeeSelfDetails(linkedEmployee.id) : null,
+    linkedEmployee
+      ? getTodayAttendanceStatus(orgId, linkedEmployee.id)
+      : { hasOpenSession: false, activeRecord: null, assignedShift: null },
+    linkedEmployee ? getEmployeeLeaveBalances(orgId, linkedEmployee.id) : [],
+    linkedEmployee ? getEmployeeAttendanceHistory(orgId, linkedEmployee.id, 10) : [],
+    linkedEmployee ? getEmployeeLeaveRequests(orgId, linkedEmployee.id) : [],
+  ]);
+
+  const totalAvailableLeave = balances.reduce((acc, b) => acc + b.availableDays, 0);
+  const pendingRequestsCount = leaveRequests.filter((r) => r.status === "pending").length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -23,11 +37,11 @@ export default async function EmployeeDashboard() {
           Employee Self-Service Workspace
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 4 }}>
-          Personal job profile, leave requests, attendance logs, and compensation documents.
+          Personal job profile, real-time attendance punching, leave applications, and timesheet logs.
         </p>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — Fully Connected Live Metrics */}
       <div
         style={{
           display: "grid",
@@ -37,31 +51,46 @@ export default async function EmployeeDashboard() {
       >
         <MetricCard
           label="Today's Clock-In"
-          isUnavailable
-          requiredPhase={5}
-          unavailableReason="Awaiting Phase 5 Biometric/Web Clock-In engine."
+          value={
+            clockStatus.activeRecord?.clockIn
+              ? new Date(clockStatus.activeRecord.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+              : "Not Stamped"
+          }
+          subtitle={clockStatus.hasOpenSession ? "Session Currently Active" : "No active session"}
+          icon={<Clock size={20} />}
         />
         <MetricCard
-          label="Available Leave Balance"
-          isUnavailable
-          requiredPhase={5}
-          unavailableReason="Awaiting Phase 5 Leave Ledger accruals."
+          label="Available Leave Quota"
+          value={`${totalAvailableLeave} Days`}
+          subtitle="Total available across all types"
+          icon={<Calendar size={20} />}
         />
         <MetricCard
-          label="Pending Leave Applications"
-          isUnavailable
-          requiredPhase={5}
-          unavailableReason="Awaiting Phase 5 Leave Requests ledger."
+          label="Pending Applications"
+          value={pendingRequestsCount}
+          subtitle="Leave requests awaiting supervisor review"
+          icon={<ShieldCheck size={20} />}
         />
         <MetricCard
           label="Latest Digital Payslip"
           isUnavailable
-          requiredPhase={6}
-          unavailableReason="Awaiting Phase 6 Payslip generator."
+          requiredPhase={7}
+          unavailableReason="Awaiting Phase 7 Payroll & Compensation cycle."
         />
       </div>
 
-      {/* Profile Overview Card & Quick Details */}
+      {/* Primary Self-Service Component */}
+      {linkedEmployee && (
+        <EmployeeSelfClient
+          initialClockStatus={clockStatus}
+          employeeName={context.profile.fullName ?? "Staff Member"}
+          balances={balances}
+          attendanceHistory={attendanceHistory}
+          leaveRequests={leaveRequests}
+        />
+      )}
+
+      {/* Profile Overview Card */}
       <div
         style={{
           display: "grid",
@@ -71,17 +100,19 @@ export default async function EmployeeDashboard() {
       >
         <Card>
           <CardHeader>
-            <div>
-              <CardTitle>My Employment Record</CardTitle>
-              <CardDescription>Official institutional personnel data</CardDescription>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+              <div>
+                <CardTitle>My Employment Record</CardTitle>
+                <CardDescription>Official institutional personnel data</CardDescription>
+              </div>
+              {empDetails && (
+                <Badge
+                  label={empDetails.employmentStatus.toUpperCase()}
+                  variant={empDetails.employmentStatus === "active" ? "success" : "neutral"}
+                  size="sm"
+                />
+              )}
             </div>
-            {empDetails && (
-              <Badge
-                label={empDetails.employmentStatus.toUpperCase()}
-                variant={empDetails.employmentStatus === "active" ? "success" : "neutral"}
-                size="sm"
-              />
-            )}
           </CardHeader>
           <CardContent>
             {empDetails ? (
@@ -215,52 +246,25 @@ export default async function EmployeeDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <div>
-              <CardTitle>Self-Service Shortcuts & Upcoming Features</CardTitle>
-              <CardDescription>Future self-service operational modules</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <SchemaDependencyNotice
-              moduleName="Web Clock-In & Timesheet"
-              requiredPhase={5}
-              description="One-click daily attendance marking, break tracking, and remote punch-in."
-              compact
-            />
-            <SchemaDependencyNotice
-              moduleName="Leave Application Portal"
-              requiredPhase={5}
-              description="Submit casual, sick, and earned leave requests directly to your supervisor."
-              compact
-            />
-            <SchemaDependencyNotice
-              moduleName="Digital Payslip Vault"
-              requiredPhase={6}
-              description="Download password-protected monthly salary statements and tax computation sheets."
-              compact
-            />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Institutional Security Notice */}
-      <div
-        className="alert alert-info"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          margin: 0,
-          fontSize: "0.85rem",
-        }}
-      >
-        <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
-        <span>
-          Your account is secured under Role-Based Access Control. You have self-service access to
-          your personal employment profile and attendance records.
-        </span>
+        {/* Security & Access Statement */}
+        <div
+          className="alert alert-info"
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 12,
+            margin: 0,
+            fontSize: "0.85rem",
+            height: "fit-content",
+          }}
+        >
+          <CheckCircle2 size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Institutional Security Enforcement</div>
+            All attendance clock-ins use trusted PostgreSQL database timestamps to prevent local machine clock tampering.
+            Leave deductions and quota reserves are enforced transactionally against the authoritative leave ledger.
+          </div>
+        </div>
       </div>
     </div>
   );

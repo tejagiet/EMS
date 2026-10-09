@@ -1,11 +1,15 @@
-import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
-import { MetricCard } from "@/components/ui/MetricCard";
-import { SchemaDependencyNotice } from "@/components/ui/SchemaDependencyNotice";
 import { verifyPortalAccess } from "@/lib/auth/session";
 import { getManagerAnalytics, type TeamMemberItem } from "@/lib/data/analytics";
-import { Users } from "lucide-react";
+import { getTeamAttendanceRoster, getAttendanceCorrectionsList } from "@/lib/data/attendance";
+import { getTeamLeaveRequests } from "@/lib/data/leave";
+import { AttendanceRosterClient } from "@/components/attendance/AttendanceRosterClient";
+import { LeaveRequestsQueueClient } from "@/components/leave/LeaveRequestsQueueClient";
+import { CorrectionsQueueClient } from "@/components/attendance/CorrectionsQueueClient";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
+import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { Badge } from "@/components/ui/Badge";
+import { Users, CheckCircle2, Clock, Calendar, AlertTriangle } from "lucide-react";
 
 export const metadata = {
   title: "Reporting Manager Dashboard | EMS",
@@ -15,37 +19,31 @@ export default async function ManagerDashboard() {
   const context = await verifyPortalAccess("manager");
   const orgId = context.activeOrganization?.id ?? "";
   const managerEmployeeId = context.linkedEmployee?.id ?? null;
+  const today = new Date().toISOString().split("T")[0]!;
 
-  const data = await getManagerAnalytics(orgId, managerEmployeeId);
+  const [data, roster, pendingLeaves, pendingCorrections] = await Promise.all([
+    getManagerAnalytics(orgId, managerEmployeeId),
+    getTeamAttendanceRoster(orgId, managerEmployeeId, today),
+    getTeamLeaveRequests(orgId, managerEmployeeId, "pending"),
+    getAttendanceCorrectionsList(orgId, managerEmployeeId, "pending"),
+  ]);
+
+  const presentCount = roster.filter((r) => r.status === "present" || r.isLate).length;
+  const lateCount = roster.filter((r) => r.isLate).length;
 
   const teamColumns: DataTableColumn<TeamMemberItem>[] = [
     {
       key: "employeeCode",
       header: "Code",
-      sortable: true,
-      render: (row) => (
-        <code
-          style={{
-            fontSize: "0.8rem",
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "var(--background)",
-          }}
-        >
-          {row.employeeCode}
-        </code>
-      ),
+      render: (row) => <code>{row.employeeCode}</code>,
     },
     {
       key: "fullName",
       header: "Team Member",
-      sortable: true,
       render: (row) => (
         <div>
           <div style={{ fontWeight: 600 }}>{row.fullName}</div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-            {row.email ?? "No direct email"}
-          </div>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{row.email ?? "No email"}</div>
         </div>
       ),
     },
@@ -57,29 +55,17 @@ export default async function ManagerDashboard() {
     {
       key: "designation",
       header: "Designation",
-      render: (row) => (
-        <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{row.designation}</span>
-      ),
+      render: (row) => <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{row.designation}</span>,
     },
     {
       key: "status",
       header: "Status",
-      sortable: true,
       render: (row) => (
         <Badge
           label={row.status.toUpperCase()}
           variant={row.status === "active" ? "success" : "warning"}
           size="sm"
         />
-      ),
-    },
-    {
-      key: "joiningDate",
-      header: "Joined On",
-      render: (row) => (
-        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-          {new Date(row.joiningDate).toLocaleDateString()}
-        </span>
       ),
     },
   ];
@@ -91,11 +77,11 @@ export default async function ManagerDashboard() {
           Reporting Manager Workspace
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 4 }}>
-          Supervisory roster, team performance reviews, and operational approval workflows.
+          Supervisory attendance monitoring, team leave requests authorization, and timesheet adjustments.
         </p>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — Real PostgreSQL Metrics */}
       <div
         style={{
           display: "grid",
@@ -110,56 +96,74 @@ export default async function ManagerDashboard() {
           icon={<Users size={20} />}
         />
         <MetricCard
-          label="Today's Team Attendance"
-          isUnavailable
-          requiredPhase={5}
-          unavailableReason="Awaiting Phase 5 Daily Shift log migrations."
+          label="Today's Present Staff"
+          value={`${presentCount} / ${roster.length}`}
+          subtitle={lateCount > 0 ? `${lateCount} marked as late arrival` : "All on-time arrivals"}
+          icon={<Clock size={20} />}
         />
         <MetricCard
-          label="Pending Team Leave Approvals"
-          isUnavailable
-          requiredPhase={5}
-          unavailableReason="Awaiting Phase 5 Leave Requests ledger."
+          label="Pending Leave Approvals"
+          value={pendingLeaves.length}
+          subtitle="Applications awaiting your decision"
+          icon={<Calendar size={20} />}
         />
         <MetricCard
-          label="Appraisal Reviews Due"
-          isUnavailable
-          requiredPhase={8}
-          unavailableReason="Awaiting Phase 8 Performance Review cycle."
+          label="Pending Time Corrections"
+          value={pendingCorrections.length}
+          subtitle="Timesheet correction tickets"
+          icon={<AlertTriangle size={20} />}
         />
       </div>
 
-      {/* Schema Notice */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: 16,
-        }}
-      >
-        <SchemaDependencyNotice
-          moduleName="Team Shift & Attendance Logs"
-          requiredPhase={5}
-          description="Supervisors will be able to monitor real-time clock-in stamps and approve attendance corrections once Phase 5 is active."
-          plannedSchema={["attendance_records", "attendance_exceptions"]}
-        />
-        <SchemaDependencyNotice
-          moduleName="Manager Leave Decision Engine"
-          requiredPhase={5}
-          description="Approve, reject, or request information on employee paid leave requests with one click in Phase 5."
-          plannedSchema={["leave_requests", "approval_history"]}
-        />
+      {/* Approvals Section: Pending Leaves & Corrections */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(420px, 1fr))", gap: 20 }}>
+        <Card id="approvals">
+          <CardHeader>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+              <div>
+                <CardTitle>Pending Leave Requests Queue</CardTitle>
+                <CardDescription>Direct reports applications awaiting authorization</CardDescription>
+              </div>
+              <Badge label={`${pendingLeaves.length} PENDING`} variant={pendingLeaves.length > 0 ? "warning" : "neutral"} size="sm" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <LeaveRequestsQueueClient initialRequests={pendingLeaves} isManager />
+          </CardContent>
+        </Card>
+
+        <Card id="corrections">
+          <CardHeader>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+              <div>
+                <CardTitle>Attendance Corrections Queue</CardTitle>
+                <CardDescription>Staff punch adjustments and missed clock-in tickets</CardDescription>
+              </div>
+              <Badge label={`${pendingCorrections.length} PENDING`} variant={pendingCorrections.length > 0 ? "warning" : "neutral"} size="sm" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <CorrectionsQueueClient initialCorrections={pendingCorrections} />
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Team Attendance Roster */}
+      <Card id="attendance">
+        <CardHeader>
+          <CardTitle>Today&apos;s Team Attendance Roster</CardTitle>
+          <CardDescription>Live daily punches, shift assignments, and work duration tracking</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AttendanceRosterClient initialRoster={roster} currentDate={today} />
+        </CardContent>
+      </Card>
 
       {/* Direct Reports Table */}
-      <Card>
+      <Card id="team">
         <CardHeader>
-          <div>
-            <CardTitle>Direct Reports Roster</CardTitle>
-            <CardDescription>
-              Employees assigned to your supervision via reporting_manager_id relationship
-            </CardDescription>
-          </div>
+          <CardTitle>Direct Reports Directory</CardTitle>
+          <CardDescription>Employees assigned to your supervision via reporting_manager_id relationship</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
@@ -168,14 +172,28 @@ export default async function ManagerDashboard() {
             keyExtractor={(row) => row.id}
             pageSize={6}
             emptyTitle="No direct reports assigned"
-            emptyDescription={
-              managerEmployeeId
-                ? "You currently have 0 direct reports linked in the database."
-                : "Your profile is not currently linked to an employee manager record."
-            }
+            emptyDescription="Your profile currently has no staff members assigned to your supervision line."
           />
         </CardContent>
       </Card>
+
+      {/* Security Statement */}
+      <div
+        className="alert alert-info"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+          margin: 0,
+          fontSize: "0.85rem",
+        }}
+      >
+        <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+        <span>
+          Managerial authorization scope is strictly isolated to your reporting line via PostgreSQL Row Level Security
+          and the <code>public.is_manager_of_employee()</code> security-definer function.
+        </span>
+      </div>
     </div>
   );
 }

@@ -216,3 +216,343 @@ export interface AuthActionResult<T = void> {
   errorCode?: string;
   redirectTo?: string;
 }
+
+// =============================================================================
+// 7. Phase 5 Employee Management Module Types
+// =============================================================================
+
+export type EmploymentType = "full_time" | "part_time" | "contract" | "intern" | "probation";
+
+export type EmploymentStatus =
+  | "active"
+  | "inactive"
+  | "terminated"
+  | "resigned"
+  | "on_leave"
+  | "suspended";
+
+export interface Employee {
+  id: UUID;
+  organizationId: UUID;
+  profileId: Nullable<UUID>;
+  branchId: Nullable<UUID>;
+  departmentId: Nullable<UUID>;
+  designationId: Nullable<UUID>;
+  reportingManagerId: Nullable<UUID>;
+  employeeCode: string;
+  firstName: Nullable<string>;
+  lastName: Nullable<string>;
+  fullName: string;
+  contactNumber: Nullable<string>;
+  workEmail: Nullable<string>;
+  workPhone: Nullable<string>;
+  emergencyContactName: Nullable<string>;
+  emergencyContactRelationship: Nullable<string>;
+  emergencyContactPhone: Nullable<string>;
+  addressLine1: Nullable<string>;
+  addressLine2: Nullable<string>;
+  city: Nullable<string>;
+  state: Nullable<string>;
+  postalCode: Nullable<string>;
+  country: Nullable<string>;
+  workLocation: Nullable<string>;
+  notes: Nullable<string>;
+  employmentType: EmploymentType;
+  employmentStatus: EmploymentStatus;
+  dateOfJoining: string;
+  dateOfConfirmation: Nullable<string>;
+  dateOfResignation: Nullable<string>;
+  dateOfTermination: Nullable<string>;
+  noticePeriodDays: number;
+  isActive: boolean;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+
+  // Joined display attributes
+  departmentName?: string | undefined;
+  branchName?: string | undefined;
+  designationName?: string | undefined;
+  reportingManagerName?: string | undefined;
+  reportingManagerCode?: string | undefined;
+}
+
+export interface EmployeeHistoryRecord {
+  id: UUID;
+  organizationId: UUID;
+  employeeId: UUID;
+  changedBy: Nullable<UUID>;
+  changedByName?: Nullable<string> | undefined;
+  fieldName: string;
+  oldValue: Nullable<string>;
+  newValue: Nullable<string>;
+  changeReason: Nullable<string>;
+  effectiveDate: Nullable<string>;
+  createdAt: ISODateString;
+}
+
+export interface DepartmentDetail {
+  id: UUID;
+  organizationId: UUID;
+  branchId: Nullable<UUID>;
+  parentDepartmentId: Nullable<UUID>;
+  headOfDepartmentId: Nullable<UUID>;
+  headOfDepartmentName?: Nullable<string> | undefined;
+  name: string;
+  code: string;
+  description: Nullable<string>;
+  isActive: boolean;
+  employeeCount?: number | undefined;
+  branchName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface BranchDetail {
+  id: UUID;
+  organizationId: UUID;
+  name: string;
+  code: string;
+  address: Nullable<string>;
+  phone: Nullable<string>;
+  email: Nullable<string>;
+  isActive: boolean;
+  employeeCount?: number | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface DesignationDetail {
+  id: UUID;
+  organizationId: UUID;
+  departmentId: Nullable<UUID>;
+  departmentName?: string | undefined;
+  name: string;
+  code: string;
+  grade: Nullable<string>;
+  level: Nullable<number>;
+  isActive: boolean;
+  employeeCount?: number | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface EmployeeDirectoryFilterParams {
+  search?: string | undefined;
+  departmentId?: string | undefined;
+  branchId?: string | undefined;
+  designationId?: string | undefined;
+  status?: string | undefined;
+  joiningFrom?: string | undefined;
+  joiningTo?: string | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
+  sortBy?: string | undefined;
+  sortOrder?: ("asc" | "desc") | undefined;
+}
+
+export interface EmployeeImportRow {
+  employeeCode?: string | undefined;
+  firstName: string;
+  lastName: string;
+  workEmail?: string | undefined;
+  contactNumber?: string | undefined;
+  departmentCode: string;
+  branchCode: string;
+  designationCode: string;
+  reportingManagerCode?: string | undefined;
+  employmentType: EmploymentType;
+  employmentStatus: EmploymentStatus;
+  dateOfJoining: string;
+  workLocation?: string | undefined;
+}
+
+export interface EmployeeImportResult {
+  totalRows: number;
+  importedCount: number;
+  failedCount: number;
+  errors: Array<{
+    rowNumber: number;
+    employeeCode?: string | undefined;
+    message: string;
+  }>;
+}
+
+// =============================================================================
+// 7. Phase 6: Attendance, Shifts, and Leave Types
+// =============================================================================
+
+export interface Shift {
+  id: UUID;
+  organizationId: UUID;
+  name: string;
+  code: string;
+  startTime: string; // HH:mm:ss
+  endTime: string;   // HH:mm:ss
+  breakDurationMinutes: number;
+  gracePeriodMinutes: number;
+  applicableDays: number[]; // 1=Mon .. 7=Sun
+  isOvernight: boolean;
+  isActive: boolean;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface ShiftAssignment {
+  id: UUID;
+  organizationId: UUID;
+  employeeId: UUID;
+  shiftId: UUID;
+  effectiveFrom: string;
+  effectiveTo: Nullable<string>;
+  isActive: boolean;
+  shiftName?: string | undefined;
+  shiftCode?: string | undefined;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export type AttendanceStatus =
+  | "present"
+  | "absent"
+  | "late"
+  | "half_day"
+  | "on_leave"
+  | "holiday"
+  | "weekend";
+
+export interface AttendanceRecord {
+  id: UUID;
+  organizationId: UUID;
+  employeeId: UUID;
+  shiftId: Nullable<UUID>;
+  workDate: string; // YYYY-MM-DD
+  clockIn: Nullable<ISODateString>;
+  clockOut: Nullable<ISODateString>;
+  breakMinutes: number;
+  durationMinutes: number;
+  status: AttendanceStatus;
+  isLate: boolean;
+  isEarlyDeparture: boolean;
+  isCorrected: boolean;
+  correctionNotes: Nullable<string>;
+  notes: Nullable<string>;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  shiftName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export type AttendanceCorrectionStatus = "pending" | "approved" | "rejected";
+
+export interface AttendanceCorrection {
+  id: UUID;
+  organizationId: UUID;
+  attendanceRecordId: Nullable<UUID>;
+  employeeId: UUID;
+  requestedClockIn: ISODateString;
+  requestedClockOut: ISODateString;
+  reason: string;
+  status: AttendanceCorrectionStatus;
+  reviewedBy: Nullable<UUID>;
+  reviewedAt: Nullable<ISODateString>;
+  rejectionReason: Nullable<string>;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  reviewedByName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface LeaveType {
+  id: UUID;
+  organizationId: UUID;
+  name: string;
+  code: string;
+  daysPerYear: number;
+  isPaid: boolean;
+  carryForwardDays: number;
+  isActive: boolean;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export type LeaveRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export interface LeaveRequest {
+  id: UUID;
+  organizationId: UUID;
+  employeeId: UUID;
+  leaveTypeId: UUID;
+  startDate: string; // YYYY-MM-DD
+  endDate: string;   // YYYY-MM-DD
+  totalDays: number;
+  reason: string;
+  status: LeaveRequestStatus;
+  reviewedBy: Nullable<UUID>;
+  reviewedAt: Nullable<ISODateString>;
+  rejectionReason: Nullable<string>;
+  employeeName?: string | undefined;
+  employeeCode?: string | undefined;
+  leaveTypeName?: string | undefined;
+  leaveTypeCode?: string | undefined;
+  reviewedByName?: string | undefined;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export type LeaveLedgerTransactionType =
+  | "credit"
+  | "debit"
+  | "accrual"
+  | "deduction"
+  | "carry_forward"
+  | "adjustment";
+
+export interface LeaveLedgerEntry {
+  id: UUID;
+  organizationId: UUID;
+  employeeId: UUID;
+  leaveTypeId: UUID;
+  leaveRequestId: Nullable<UUID>;
+  transactionType: LeaveLedgerTransactionType;
+  days: number;
+  notes: Nullable<string>;
+  createdAt: ISODateString;
+}
+
+export interface LeaveBalanceSummary {
+  leaveTypeId: UUID;
+  leaveTypeName: string;
+  leaveTypeCode: string;
+  daysPerYear: number;
+  isPaid: boolean;
+  accruedDays: number;
+  usedDays: number;
+  pendingDays: number;
+  availableDays: number;
+}
+
+export type NotificationType =
+  | "leave_submitted"
+  | "leave_approved"
+  | "leave_rejected"
+  | "correction_submitted"
+  | "correction_reviewed"
+  | "shift_assigned"
+  | "system";
+
+export interface AppNotification {
+  id: UUID;
+  organizationId: UUID;
+  recipientProfileId: UUID;
+  title: string;
+  message: string;
+  type: NotificationType;
+  link: Nullable<string>;
+  isRead: boolean;
+  createdAt: ISODateString;
+}
+

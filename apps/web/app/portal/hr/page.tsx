@@ -1,11 +1,14 @@
+import Link from "next/link";
 import { DonutChart } from "@/components/charts/DonutChart";
 import { LineChart } from "@/components/charts/LineChart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { MetricCard } from "@/components/ui/MetricCard";
-import { SchemaDependencyNotice } from "@/components/ui/SchemaDependencyNotice";
+import { Button } from "@/components/ui/Button";
 import { verifyPortalAccess } from "@/lib/auth/session";
 import { getHrAnalytics } from "@/lib/data/analytics";
-import { Clock, UserCheck, Users } from "lucide-react";
+import { getTeamAttendanceRoster } from "@/lib/data/attendance";
+import { getTeamLeaveRequests } from "@/lib/data/leave";
+import { Clock, UserCheck, Users, Calendar, AlertTriangle, ArrowRight } from "lucide-react";
 import { HrDirectoryTable } from "./HrDirectoryTable";
 
 export const metadata = {
@@ -15,7 +18,14 @@ export const metadata = {
 export default async function HrDashboard() {
   const context = await verifyPortalAccess("hr_manager");
   const orgId = context.activeOrganization?.id ?? "";
-  const data = await getHrAnalytics(orgId);
+
+  const [data, roster, pendingLeaves] = await Promise.all([
+    getHrAnalytics(orgId),
+    getTeamAttendanceRoster(orgId),
+    getTeamLeaveRequests(orgId, null, "pending"),
+  ]);
+
+  const exceptionsCount = roster.filter((r) => r.isLate || r.isEarlyDeparture || r.status === "absent").length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -25,11 +35,11 @@ export default async function HrDashboard() {
           Human Resources Operations
         </h1>
         <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 4 }}>
-          Workforce roster, employment lifecycles, and institutional personnel management.
+          Workforce roster, employment lifecycles, real-time attendance rosters, and leave approvals.
         </p>
       </div>
 
-      {/* KPI Cards */}
+      {/* KPI Cards — Connected Live Metrics */}
       <div
         style={{
           display: "grid",
@@ -57,16 +67,82 @@ export default async function HrDashboard() {
         />
         <MetricCard
           label="Attendance Exceptions"
-          isUnavailable
-          requiredPhase={5}
-          unavailableReason="Awaiting Phase 5 Shift and Clock-in migrations."
+          value={exceptionsCount}
+          subtitle="Late, absent, or unclocked today"
+          icon={<AlertTriangle size={20} />}
         />
         <MetricCard
           label="Pending Leave Requests"
-          isUnavailable
-          requiredPhase={5}
-          unavailableReason="Awaiting Phase 5 Leave Requests ledger migrations."
+          value={pendingLeaves.length}
+          subtitle="Applications awaiting decision"
+          icon={<Calendar size={20} />}
         />
+      </div>
+
+      {/* Quick Access Operational Cards */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: 16,
+        }}
+      >
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Attendance Rosters</CardTitle>
+              <CardDescription>Daily clock-in logs and time exceptions</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0 0 16px" }}>
+              Monitor daily punches across all units, detect late arrivals, and export safe timesheet CSVs.
+            </p>
+            <Link href="/portal/hr/attendance">
+              <Button size="sm" variant="secondary">
+                View Rosters <ArrowRight size={14} style={{ marginLeft: 6 }} />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Shift Scheduling</CardTitle>
+              <CardDescription>Working hours and roster assignments</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0 0 16px" }}>
+              Configure daytime and overnight shifts with grace periods, and assign staff members.
+            </p>
+            <Link href="/portal/hr/shifts">
+              <Button size="sm" variant="secondary">
+                Manage Shifts <ArrowRight size={14} style={{ marginLeft: 6 }} />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Leave Management</CardTitle>
+              <CardDescription>Authoritative ledger and approvals</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p style={{ fontSize: "0.85rem", color: "var(--text-muted)", margin: "0 0 16px" }}>
+              Review organization-wide leave requests and configure institutional quota allocations.
+            </p>
+            <Link href="/portal/hr/leave">
+              <Button size="sm" variant="secondary">
+                Manage Leaves <ArrowRight size={14} style={{ marginLeft: 6 }} />
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Analytics Visualizations */}
@@ -88,28 +164,6 @@ export default async function HrDashboard() {
           title="Workforce Joining Trend"
           description="Monthly personnel onboarding timeline derived from date_of_joining"
           data={data.monthlyJoiningTrend}
-        />
-      </div>
-
-      {/* HR Module Dependencies */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          gap: 16,
-        }}
-      >
-        <SchemaDependencyNotice
-          moduleName="Attendance Tracking"
-          requiredPhase={5}
-          description="Real-time biometric and self-service shift logs will activate once attendance tables are deployed."
-          plannedSchema={["attendance_records", "work_shifts", "shift_assignments"]}
-        />
-        <SchemaDependencyNotice
-          moduleName="Leave Ledger"
-          requiredPhase={5}
-          description="Paid time off accruals and leave approval workflows activate in Phase 5."
-          plannedSchema={["leave_types", "leave_requests", "leave_ledger"]}
         />
       </div>
 

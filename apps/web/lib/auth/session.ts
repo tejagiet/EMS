@@ -311,3 +311,5 @@ export async function verifyPortalAccess(
 
   return context;
 }
+
+export { getCurrentUserContext as getActiveSessionContext };

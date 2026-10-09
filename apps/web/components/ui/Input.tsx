@@ -1,9 +1,9 @@
 import React from "react";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
-  helperText?: string;
+  label?: string | undefined;
+  error?: string | undefined;
+  helperText?: string | undefined;
 }
 
 export function Input({
@@ -44,8 +44,8 @@ export function Input({
 }
 
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
-  error?: string;
+  label?: string | undefined;
+  error?: string | undefined;
   options: { label: string; value: string }[];
 }
 

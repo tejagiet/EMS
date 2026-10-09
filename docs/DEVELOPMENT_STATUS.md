@@ -301,9 +301,91 @@
 
 ---
 
-## Phase 5 — Core HR: Attendance, Shifts and Leave Management _(upcoming)_
+## Phase 5 — Complete Employee Management Module ✅ Complete
 
-- [ ] Attendance tracking and check-in/out records
-- [ ] Shift scheduling and allocation
-- [ ] Leave types, leave applications, and approval workflows
-- [ ] Leave ledger and balance accrual
+> **Status:** ✅ Complete — all acceptance criteria verified
+
+### Checklist
+
+#### Database & Schema Foundation (Phase 5)
+- [x] `supabase/migrations/20261009000005_phase5_employee_management.sql`:
+  - Extended `employees` table schema with personal, demographic, contact, and compensation fields
+  - Unique employee code generator trigger and sequence
+  - Immutable audit trail trigger logging to `employee_history`
+  - Performance indexes for directory search, status, and department filtering
+  - RLS policies enforcing tenant isolation and role permissions
+
+#### HR Employee Directory & CRUD UI
+- [x] Employee directory with live search, department/branch/status filters, pagination, and sorting (`/portal/hr/employees`)
+- [x] Full employee onboarding creation form with Zod schema validation (`/portal/hr/employees/new`)
+- [x] Employee profile inspection view with history timeline and reporting hierarchy (`/portal/hr/employees/[id]`)
+- [x] Employee details edit flow (`/portal/hr/employees/[id]/edit`)
+- [x] Organizational management pages:
+  - [x] Branch management (`/portal/hr/branches`)
+  - [x] Department hierarchy management (`/portal/hr/departments`)
+  - [x] Designation and grade level management (`/portal/hr/designations`)
+
+---
+
+## Phase 6 — Attendance, Shifts and Leave Management Module ✅ Complete
+
+> **Status:** ✅ Complete — all acceptance criteria verified
+
+### Checklist
+
+#### Database Migration & RPCs (Phase 6)
+- [x] `supabase/migrations/20261009000006_phase6_attendance_shifts_leave.sql`:
+  - Tables: `shifts`, `shift_assignments`, `attendance_records`, `attendance_corrections`, `leave_types`, `leave_requests`, `leave_ledger`, `notifications`
+  - Transactional Database RPCs:
+    - `public.clock_in_employee(p_employee_id, p_notes, p_ip_address, p_device_info)`: uses trusted server `NOW()`, verifies active session absence, matches assigned shift, detects lateness past grace period
+    - `public.clock_out_employee(p_attendance_id, p_notes)`: closes open session using trusted `NOW()`, computes duration minus unpaid breaks, handles overnight cross-midnight shifts
+    - `public.process_attendance_correction_decision(p_correction_id, p_decision, p_notes)`: updates attendance record and logs audit reason atomically
+    - `public.process_leave_request_decision(p_request_id, p_decision, p_notes)`: records decision, inserts immutable debit entry in `leave_ledger`, and dispatches notification
+  - Default seed data: Standard General Shift (09:00 - 17:00) and 4 core leave types (Annual, Sick, Casual, Unpaid)
+  - Granular RLS policies scoping self-service access, direct-report line inspection (`public.is_manager_of_employee`), and HR management permissions
+
+#### Shared Monorepo Packages
+- [x] `packages/types/src/index.ts`: Exported full TypeScript types for `Shift`, `ShiftAssignment`, `AttendanceRecord`, `AttendanceCorrection`, `LeaveType`, `LeaveRequest`, `LeaveLedgerEntry`, `LeaveBalanceSummary`, and `AppNotification`
+- [x] `packages/validation/src/index.ts`: Implemented robust Zod schemas for shifts, shift assignments, attendance corrections, leave requests, and approval decisions
+- [x] `packages/config/src/index.ts`: HR portal navigation routes added for `/portal/hr/attendance`, `/portal/hr/shifts`, and `/portal/hr/leave`
+
+#### Server Actions & Data Layer
+- [x] `apps/web/lib/data/attendance.ts` & `attendance-actions.ts`:
+  - Self-service clock-in and clock-out operations
+  - Active session retrieval and monthly attendance history
+  - Manager roster for team attendance and exceptions (late, absent, early departure)
+  - Pending attendance corrections queue and review actions
+  - Formula-injection safe CSV exports (`=`/`+`/`-`/`@` sanitization)
+- [x] `apps/web/lib/data/leave.ts` & `leave-actions.ts`:
+  - Authoritative balance calculation via ledger sum (`SUM(days)`) minus pending requests
+  - Leave application submissions with quota exhaust guards
+  - Manager and HR review queue with transactional approval/rejection RPCs
+  - Formula-injection safe leave report CSV exports
+- [x] `apps/web/lib/data/shifts.ts` & `shift-actions.ts`:
+  - Shift definitions CRUD with break durations and grace periods
+  - Shift assignment engine with date overlap conflict prevention
+
+#### UI Components & Portals
+- [x] Reusable UI Components: `ConfirmDialog`, `Select`, `Input`, `Card`
+- [x] `ClockInOutWidget`: Live server time tracker, dynamic shift context, and clock-in/out controls
+- [x] `AttendanceCorrectionModal`: Correction request modal with reason validation
+- [x] `AttendanceRosterClient`: Organization/team roster with date picker, exception filters, and CSV export
+- [x] `CorrectionsQueueClient`: Supervisor review interface with reason audit modals
+- [x] `LeaveBalancesGrid`: Progress quota cards showing available, used, and pending allocations
+- [x] `ApplyLeaveModal`: Dynamic leave application form with live balance feedback
+- [x] `LeaveRequestsQueueClient`: Supervisory review interface for leave requests
+- [x] `ShiftsClient`: Comprehensive shift scheduling and staff assignment console
+- [x] Live Dashboards:
+  - [x] Employee Self-Service (`/portal/employee`): Attendance clock, personal history, balance cards, leave requests
+  - [x] Manager Supervisory (`/portal/manager`): Direct reports roster, attendance exceptions, pending leave & correction approvals
+  - [x] HR Portal Hub (`/portal/hr`): Real-time metrics for today's presence, on leave, and pending queues
+  - [x] HR Attendance Hub (`/portal/hr/attendance`): Full organization attendance roster and corrections queue
+  - [x] HR Shifts Hub (`/portal/hr/shifts`): Shift configuration and roster assignment
+  - [x] HR Leave Hub (`/portal/hr/leave`): Comprehensive leave balance tracking and requests queue
+
+#### Automated Testing & Verification
+- [x] Vitest test suite (`tests/attendance-and-leave.test.ts`): 17 unit and business logic tests verifying duration minus breaks, overnight shifts, lateness detection with grace periods, shift overlap conflict checks, authoritative balance calculation, and CSV formula injection protection
+- [x] Total test suite: 64/64 tests passing across 5 test suites
+- [x] Strict TypeScript: `pnpm typecheck` passed (0 errors across 9 workspaces)
+- [x] Next.js 15 production build: `pnpm --filter @ems/web build` passed (29 routes statically/dynamically generated cleanly)
+
