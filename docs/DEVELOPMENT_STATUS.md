@@ -231,18 +231,79 @@
 - [x] `pnpm lint`: Succeeded across entire monorepo
 - [x] `pnpm format:check`: All files conform to Prettier code style
 
-## Phase 4 — Advanced Features _(not started)_
+## Phase 4 — Design System, Dashboards and Analytics UI
 
-- [ ] Reporting & analytics
-- [ ] Notifications
-- [ ] File attachments
-- [ ] Audit logging
-- [ ] Export (PDF, CSV)
+> **Status:** ✅ Complete — all acceptance criteria verified
 
-## Phase 5 — Production & Deployment _(not started)_
+### Checklist
 
-- [ ] CI/CD pipelines
-- [ ] Production environment configuration
-- [ ] Performance optimization
-- [ ] Security audit
-- [ ] Staging deployment
+#### Reusable Design System & Tokens
+
+- [x] Institutional palette tokens (Light & Dark mode custom properties in `packages/ui` and `apps/web/app/globals.css`)
+- [x] Accessible focus ring standards, border radii, and spacing scales
+- [x] Client-side theme provider and persistent theme toggle (`ThemeProvider`, `ThemeToggle`)
+- [x] Enterprise primitives:
+  - [x] `Button` (5 variants, 3 sizes, loading spinners, disabled states)
+  - [x] `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`
+  - [x] `Badge` (status chips with variant color mappings)
+  - [x] `MetricCard` (KPI indicator with trends, drilldown links, and schema notices)
+  - [x] `Input` and `Select` (labeled, accessible form inputs with error feedback)
+  - [x] `DataTable` (generic typed table with client/server sorting and pagination)
+  - [x] `SearchFilterBar` (integrated search input with dynamic filters)
+  - [x] `Modal` & `ConfirmDialog` (accessible overlays with Escape dismissal and focus traps)
+  - [x] `Toast` & `ToastProvider` (floating context notification system)
+  - [x] `Skeleton`, `CardSkeleton`, `TableSkeleton`, `ChartSkeleton` (skeleton loading states)
+  - [x] `Breadcrumbs`, `Pagination`, `EmptyState`, `ErrorState`
+  - [x] `InstitutionalHeader` & `InstitutionalFooter` (`GIETP-AI-IT-EMS-T1-2026`)
+  - [x] `SchemaDependencyNotice` (honest notices for future database schemas)
+
+#### Application Shell
+
+- [x] Responsive `AppShell` with collapsible desktop sidebar (260px <-> 72px)
+- [x] Mobile drawer navigation with accessible backdrop overlay
+- [x] Top header with breadcrumbs, role navigation switcher, and multi-tenant org switcher
+- [x] Notification panel dropdown with unread badge counter
+- [x] Authenticated user profile menu with Supabase session sign-out action
+
+#### Charts & Visualizations
+
+- [x] Responsive SVG `BarChart` with hover tooltips and accessible data table view toggle
+- [x] Responsive SVG `LineChart` with date range filters (`all`, `6m`, `1y`) and table view toggle
+- [x] Responsive SVG `DonutChart` with legends and center metric display
+- [x] `UnavailableChartCard` explaining dependencies for future modules
+
+#### Authorized Role Dashboards (10/10)
+
+- [x] Super Admin (`/portal/super-admin`): Platform tenants, profiles, and system roles
+- [x] Org Admin (`/portal/org-admin`): Tenant headcounts, branches, departments, distribution bar chart, audit history
+- [x] HR Manager (`/portal/hr`): Headcount metrics, monthly joinings trend, employment type donut chart, full employee roster with search/filters (`HrDirectoryTable`)
+- [x] Recruitment Manager (`/portal/recruitment`): Department capacity, job titles table, Phase 7 schema notice
+- [x] Finance & Payroll (`/portal/finance-payroll`): Grade distribution chart, active headcount, Phase 6 payroll ledger notice
+- [x] Reporting Manager (`/portal/manager`): Direct reports roster table, Phase 5 direct report attendance/leave notices
+- [x] Department Head (`/portal/dept-head`): Department personnel roster, Phase 5 departmental shift notice
+- [x] IT & Assets (`/portal/it-assets`): Tenant `settings` inspection table, user accounts count, Phase 8 hardware inventory notice
+- [x] Employee Self-Service (`/portal/employee`): Personal employment record, manager linkage, Phase 5 personal attendance/leave notices
+- [x] Auditor (`/portal/auditor`): Strictly read-only compliance inspection dashboard, immutable audit logs (`employee_history`), no mutation controls
+
+#### Institutional Identification & Pages
+
+- [x] Institutional branding on all layouts, login, portal shells, and footers
+- [x] Dedicated project about page (`/about`) with full GIET Polytechnic College, AI Department, Team T-1, Batch 2024–2027 attribution
+- [x] Custom not-found error page (`/not-found`)
+
+#### Automated Testing & Verification
+
+- [x] Vitest test suites: `tests/design-system-and-dashboards.test.ts` (9 tests passed), 47/47 total tests passed across monorepo
+- [x] Next.js 15 production build: `pnpm --filter @ems/web build` passed (21 routes compiled cleanly)
+- [x] Strict TypeScript: `pnpm typecheck` passed (0 errors across 9 workspaces)
+- [x] Linter: `pnpm lint` passed (0 warnings, 0 errors)
+- [x] Formatting: `pnpm format:check` passed with 100% compliance
+
+---
+
+## Phase 5 — Core HR: Attendance, Shifts and Leave Management _(upcoming)_
+
+- [ ] Attendance tracking and check-in/out records
+- [ ] Shift scheduling and allocation
+- [ ] Leave types, leave applications, and approval workflows
+- [ ] Leave ledger and balance accrual
