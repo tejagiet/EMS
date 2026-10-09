@@ -1,0 +1,11 @@
+# Prettier ignore patterns
+node_modules/
+dist/
+build/
+.next/
+out/
+.expo/
+src-tauri/target/
+coverage/
+*.tsbuildinfo
+pnpm-lock.yaml

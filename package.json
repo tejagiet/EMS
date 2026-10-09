@@ -1,0 +1,38 @@
+{
+  "name": "ems-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Employee Management System — pnpm monorepo (web, mobile, desktop, shared)",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "pnpm --filter @ems/web dev",
+    "dev:web": "pnpm --filter @ems/web dev",
+    "dev:mobile": "pnpm --filter @ems/mobile dev",
+    "dev:desktop": "pnpm --filter @ems/desktop dev",
+    "build": "pnpm -r build",
+    "build:web": "pnpm --filter @ems/web build",
+    "build:mobile": "pnpm --filter @ems/mobile build",
+    "build:desktop": "pnpm --filter @ems/desktop build",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:ci": "pnpm -r test --reporter=verbose",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml,css}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yaml,yml,css}\" --ignore-path .gitignore",
+    "clean": "pnpm -r clean && pnpm store prune",
+    "prepare": "node -e \"try{require('husky').install()}catch(e){}\""
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^5.5.0"
+  }
+}

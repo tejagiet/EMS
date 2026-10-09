@@ -1,0 +1,32 @@
+{
+  "name": "@ems/web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "EMS Next.js web application",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "next lint --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf .next out"
+  },
+  "dependencies": {
+    "@ems/config": "workspace:*",
+    "@ems/shared": "workspace:*",
+    "@ems/types": "workspace:*",
+    "@ems/ui": "workspace:*",
+    "@ems/validation": "workspace:*",
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "rimraf": "^6.0.0",
+    "typescript": "^5.5.0"
+  }
+}

@@ -1,0 +1,68 @@
+# ── Dependencies ─────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+
+# ── Build outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.expo/
+.expo-shared/
+target/          # Rust/Tauri build artifacts
+src-tauri/target/
+*.tsbuildinfo
+.turbo/
+
+# ── Environment & credentials ─────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+secrets/
+
+# ── Editor & OS artefacts ─────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ── Test coverage ─────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── Supabase generated ────────────────────────────────────────────────────────
+supabase/.branches/
+supabase/.temp/
+
+# ── Expo / React Native ───────────────────────────────────────────────────────
+.expo/
+android/
+ios/
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# ── Misc generated ────────────────────────────────────────────────────────────
+*.tgz
+.cache/
