@@ -18,8 +18,11 @@
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "clean": "rimraf dist"
   },
+  "dependencies": {
+    "@ems/config": "workspace:*",
+    "@ems/types": "workspace:*"
+  },
   "devDependencies": {
-    "@ems/types": "workspace:*",
     "rimraf": "^6.0.0",
     "typescript": "^5.5.0"
   },

@@ -1,11 +1,12 @@
-// EMS Next.js Web App — Phase 1 placeholder
-// This file will be replaced by the Next.js app router entry in Phase 2+.
+import { getCurrentUserContext } from "@/lib/auth/session";
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <main>
-      <h1>Employee Management System</h1>
-      <p>Phase 1 — Foundation placeholder</p>
-    </main>
-  );
+export default async function HomePage() {
+  const context = await getCurrentUserContext();
+
+  if (context?.isAccountActive) {
+    redirect("/portal");
+  }
+
+  redirect("/login");
 }

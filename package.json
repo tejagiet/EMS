@@ -20,8 +20,9 @@
     "lint": "pnpm -r lint",
     "lint:fix": "pnpm -r lint:fix",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
-    "test:ci": "pnpm -r test --reporter=verbose",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ci": "vitest run --reporter=verbose",
     "db:start": "npx supabase start",
     "db:stop": "npx supabase stop",
     "db:status": "npx supabase status",
@@ -42,6 +43,7 @@
     "prettier": "^3.3.0",
     "supabase": "^2.0.0",
     "typescript": "^5.5.0",
-    "typescript-eslint": "^8.0.0"
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^5.0.3"
   }
 }

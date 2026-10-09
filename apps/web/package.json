@@ -18,6 +18,8 @@
     "@ems/types": "workspace:*",
     "@ems/ui": "workspace:*",
     "@ems/validation": "workspace:*",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.117.3",
     "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"

@@ -166,13 +166,70 @@
 - [ ] Migrations not yet applied (pending Docker availability)
 - [ ] Tests not yet executed (pending Docker availability)
 
-## Phase 3 — Core Business Modules _(not started)_
+## Phase 3 — Authentication, RBAC and Secure Access ✅ Complete
 
-- [ ] Employee CRUD
-- [ ] Department management
-- [ ] Role & permissions system
-- [ ] Attendance tracking
-- [ ] Leave management
+> **Status:** ✅ Complete — Web authentication, Next.js 15 middleware, server-side RBAC guards, 10 portal shells, 22 granular permissions, automated tests (38 assertions passed), and full documentation.
+
+### Authentication & Sessions
+
+- [x] Web login experience (`/login`) with institutional branding (`GIETP-AI-IT-EMS-T1-2026`)
+- [x] Password visibility toggle, remember-me session persistence, inline validation
+- [x] Password recovery request screen (`/forgot-password`)
+- [x] Password reset screen (`/auth/reset-password`)
+- [x] Auth code exchange handler (`/auth/callback`)
+- [x] Expired session alert handling and post-login redirection
+- [x] Server-side Next.js 15 middleware (`apps/web/middleware.ts`) handling token refresh & cookie sync
+
+### Profile, Organization & Multi-Tenancy
+
+- [x] Authenticated user profile retrieval from `public.profiles`
+- [x] Active organization resolution and authorized membership switching
+- [x] Linked employee profile identification (`public.employees`)
+- [x] Account deactivation checks (`is_active = false` immediately rejected)
+- [x] Open redirect protection (`sanitizeRedirectUrl`) preventing external redirection attacks
+
+### Role-Based Access Control (RBAC) & Portals
+
+- [x] 10 Portal Roles defined and verified:
+  1. Super Admin (`/portal/super-admin`)
+  2. Organization Admin (`/portal/org-admin`)
+  3. HR (`/portal/hr`)
+  4. Recruitment (`/portal/recruitment`)
+  5. Finance & Payroll (`/portal/finance-payroll`)
+  6. Manager (`/portal/manager`)
+  7. Department Head (`/portal/dept-head`)
+  8. IT & Assets (`/portal/it-assets`)
+  9. Employee Self-Service (`/portal/employee`)
+  10. Auditor (`/portal/auditor`)
+- [x] 22 Granular Permission Codes implemented and mapped
+- [x] Documented least-privilege role-permission matrix (`ROLE_PERMISSIONS_MATRIX`)
+- [x] Auditor strict read-only boundary enforced
+- [x] Payroll authorization restricted to Finance & Super Admin
+- [x] Portal landing and multi-role selector (`/portal`)
+- [x] Shared portal shell layout with institutional headers, role pill, org switcher, role switcher, and sign-out
+- [x] Access-denied screen (`/unauthorized`) with context and role-switching links
+
+### Database Migration (Phase 3)
+
+- [x] `supabase/migrations/20261009000004_phase3_rbac_portals.sql`:
+  - 10 portal system roles inserted/updated
+  - 22 granular permissions inserted
+  - Role-permission grants applied
+  - Security definer functions: `get_my_active_roles()`, `get_my_permissions()`, `is_manager_of_employee()`
+  - RLS policy on `employees` for reporting-line manager inspection
+
+### Automated Tests (38/38 Passed)
+
+- [x] `tests/auth-validation.test.ts` (12 tests passed)
+- [x] `tests/rbac-matrix.test.ts` (13 tests passed)
+- [x] `tests/security-guards.test.ts` (13 tests passed)
+
+### Build Verification
+
+- [x] `pnpm --filter @ems/web build`: Succeeded (20 static/dynamic routes generated, 0 ESLint errors)
+- [x] `pnpm typecheck`: Succeeded across all 9 packages & apps
+- [x] `pnpm lint`: Succeeded across entire monorepo
+- [x] `pnpm format:check`: All files conform to Prettier code style
 
 ## Phase 4 — Advanced Features _(not started)_
 

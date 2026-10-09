@@ -244,7 +244,9 @@ cp .env.example .env.local
 
 See [docs/DEVELOPMENT_STATUS.md](./docs/DEVELOPMENT_STATUS.md) for the full phase-by-phase progress tracker.
 
-**Current phase:** Phase 2 — Supabase Database Foundation ✅
+**Current phase:** Phase 3 — Authentication, RBAC and Secure Access ✅
+
+See [docs/AUTH_AND_RBAC.md](./docs/AUTH_AND_RBAC.md) for the complete authentication architecture, sequence diagrams, and RBAC matrix.
 
 ---
 
