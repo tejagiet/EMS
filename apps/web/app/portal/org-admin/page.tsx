@@ -1,10 +1,26 @@
 import { BarChart } from "@/components/charts/BarChart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { MetricCard } from "@/components/ui/MetricCard";
-import { SchemaDependencyNotice } from "@/components/ui/SchemaDependencyNotice";
 import { verifyPortalAccess } from "@/lib/auth/session";
 import { getOrgAdminAnalytics } from "@/lib/data/analytics";
-import { Briefcase, Building2, GitFork, History, Users } from "lucide-react";
+import { getTeamLeaveRequests } from "@/lib/data/leave";
+import { getPayrollRuns } from "@/lib/data/payroll";
+import { getCandidates, getJobPostings } from "@/lib/data/recruitment";
+import { getAssets } from "@/lib/data/assets";
+import {
+  Briefcase,
+  Building2,
+  GitFork,
+  History,
+  Users,
+  CreditCard,
+  Calendar,
+  Laptop,
+  UserCheck,
+  ArrowRight,
+  ShieldCheck,
+} from "lucide-react";
+import Link from "next/link";
 import { OrgAdminHistoryTable } from "./OrgAdminHistoryTable";
 
 export const metadata = {
@@ -14,7 +30,20 @@ export const metadata = {
 export default async function OrgAdminDashboard() {
   const context = await verifyPortalAccess("org_admin");
   const orgId = context.activeOrganization?.id ?? "";
-  const data = await getOrgAdminAnalytics(orgId);
+
+  const [data, leaveRequests, payrollRuns, postings, candidates, assets] = await Promise.all([
+    getOrgAdminAnalytics(orgId),
+    getTeamLeaveRequests(orgId, null, "pending"),
+    getPayrollRuns(orgId),
+    getJobPostings(orgId),
+    getCandidates(orgId),
+    getAssets(orgId),
+  ]);
+
+  const pendingPayrollRuns = payrollRuns.filter((r) => r.status === "draft");
+  const activePostingsCount = postings.filter((p) => p.status === "published").length;
+  const inPipelineCandidates = candidates.filter((c) => c.stage !== "rejected").length;
+  const assignedAssetsCount = assets.filter((a) => a.status === "assigned").length;
 
   const deptChartData = data.departmentDistribution.map((d) => ({
     label: d.category,
@@ -94,34 +123,171 @@ export default async function OrgAdminDashboard() {
         <Card>
           <CardHeader>
             <div>
-              <CardTitle>Tenant Approval Pipeline</CardTitle>
-              <CardDescription>Cross-module pending administrative actions</CardDescription>
+              <CardTitle>Tenant Approval Pipeline & Operations</CardTitle>
+              <CardDescription>Real-time cross-module pending actions and administrative status</CardDescription>
             </div>
           </CardHeader>
           <CardContent style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <SchemaDependencyNotice
-              moduleName="Leave Approval Approvals"
-              requiredPhase={5}
-              description="Awaiting Phase 5 Leave Requests ledger schema. Currently 0 active request bottlenecks."
-              compact
-            />
-            <SchemaDependencyNotice
-              moduleName="Monthly Payroll Approvals"
-              requiredPhase={6}
-              description="Awaiting Phase 6 Payroll Run batch schema. Financial disbursements locked pending Phase 6."
-              compact
-            />
             <div
               style={{
-                marginTop: 8,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "12px 14px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                backgroundColor: "var(--background)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Calendar size={18} color="#f59e0b" />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.88rem" }}>Pending Leave Requests</div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                    {leaveRequests.length} applications awaiting supervisor review
+                  </div>
+                </div>
+              </div>
+              <Link
+                href="/portal/manager/approvals"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "0.8rem",
+                  color: "var(--primary)",
+                  fontWeight: 500,
+                  textDecoration: "none",
+                }}
+              >
+                Review <ArrowRight size={13} />
+              </Link>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "12px 14px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                backgroundColor: "var(--background)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <CreditCard size={18} color="#3b82f6" />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.88rem" }}>Monthly Payroll Runs</div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                    {pendingPayrollRuns.length} draft cycles awaiting financial authorization
+                  </div>
+                </div>
+              </div>
+              <Link
+                href="/portal/finance-payroll/runs"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "0.8rem",
+                  color: "var(--primary)",
+                  fontWeight: 500,
+                  textDecoration: "none",
+                }}
+              >
+                Inspect <ArrowRight size={13} />
+              </Link>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "12px 14px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                backgroundColor: "var(--background)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <UserCheck size={18} color="#10b981" />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.88rem" }}>Talent Requisitions & Pipeline</div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                    {activePostingsCount} active job openings · {inPipelineCandidates} candidates in evaluation
+                  </div>
+                </div>
+              </div>
+              <Link
+                href="/portal/recruitment/candidates"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "0.8rem",
+                  color: "var(--primary)",
+                  fontWeight: 500,
+                  textDecoration: "none",
+                }}
+              >
+                View Pipeline <ArrowRight size={13} />
+              </Link>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "12px 14px",
+                borderRadius: 8,
+                border: "1px solid var(--border)",
+                backgroundColor: "var(--background)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Laptop size={18} color="#6366f1" />
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "0.88rem" }}>IT & Hardware Inventory</div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                    {assets.length} tracked assets ({assignedAssetsCount} actively allocated)
+                  </div>
+                </div>
+              </div>
+              <Link
+                href="/portal/it-assets/inventory"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: "0.8rem",
+                  color: "var(--primary)",
+                  fontWeight: 500,
+                  textDecoration: "none",
+                }}
+              >
+                Manage <ArrowRight size={13} />
+              </Link>
+            </div>
+
+            <div
+              style={{
+                marginTop: 6,
                 fontSize: "0.82rem",
                 color: "var(--text-muted)",
                 lineHeight: 1.5,
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
               }}
             >
-              Institutional Structure Status: All <strong>{data.totalDepartments}</strong>{" "}
-              departments and <strong>{data.totalBranches}</strong> branches are active and
-              enforcing cross-organization isolation boundaries.
+              <ShieldCheck size={16} color="#10b981" />
+              <span>
+                All <strong>{data.totalDepartments}</strong> departments and <strong>{data.totalBranches}</strong> branches
+                enforce strict PostgreSQL RLS tenant boundary isolation.
+              </span>
             </div>
           </CardContent>
         </Card>

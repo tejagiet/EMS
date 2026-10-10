@@ -312,6 +312,36 @@ export const PORTAL_CONFIGS: Record<PortalRole, PortalConfig> = {
         requiredPermission: "employee.read",
       },
       {
+        id: "attendance",
+        label: "Attendance & Rosters",
+        path: "/portal/hr/attendance",
+        requiredPermission: "attendance.read",
+      },
+      {
+        id: "leave",
+        label: "Leave Authorizations",
+        path: "/portal/manager/approvals",
+        requiredPermission: "leave.approve",
+      },
+      {
+        id: "payroll",
+        label: "Compensation & Payroll",
+        path: "/portal/finance-payroll/runs",
+        requiredPermission: "payroll.read",
+      },
+      {
+        id: "recruitment",
+        label: "Talent & Recruitment",
+        path: "/portal/recruitment/candidates",
+        requiredPermission: "recruitment.read",
+      },
+      {
+        id: "assets",
+        label: "IT & Physical Assets",
+        path: "/portal/it-assets/inventory",
+        requiredPermission: "asset.read",
+      },
+      {
         id: "roles",
         label: "Roles & Permissions",
         path: "/portal/org-admin/roles",
