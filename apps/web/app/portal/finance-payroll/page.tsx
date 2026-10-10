@@ -1,7 +1,5 @@
 import { BarChart } from "@/components/charts/BarChart";
-import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DataTable } from "@/components/ui/DataTable";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { verifyPortalAccess } from "@/lib/auth/session";
 import { getFinancePayrollAnalytics } from "@/lib/data/analytics";
@@ -10,6 +8,7 @@ import { getEmployeesDirectory } from "@/lib/data/employees";
 import { PayrollRunsClient } from "@/components/payroll/PayrollRunsClient";
 import { SalaryStructuresClient } from "@/components/payroll/SalaryStructuresClient";
 import { CreditCard, Users, CheckCircle2, AlertCircle } from "lucide-react";
+import { DesignationPayBandsTable } from "./DesignationPayBandsTable";
 
 export const metadata = {
   title: "Finance & Payroll Console | EMS",
@@ -42,39 +41,6 @@ export default async function FinancePayrollDashboard() {
     label: d.departmentName,
     value: d.count,
   }));
-
-  const gradeColumns = [
-    {
-      key: "name",
-      header: "Designation Title",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <span style={{ fontWeight: 600 }}>{String(row.name)}</span>
-      ),
-    },
-    {
-      key: "grade",
-      header: "Compensation Grade",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <Badge
-          label={typeof row.grade === "string" ? row.grade.toUpperCase() : "UNGRADED"}
-          variant={typeof row.grade === "string" ? "secondary" : "neutral"}
-          size="sm"
-        />
-      ),
-    },
-    {
-      key: "level",
-      header: "Salary Band Level",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>
-          {typeof row.level === "number" ? `Level ${row.level.toString()}` : "Standard"}
-        </span>
-      ),
-    },
-  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -177,11 +143,8 @@ export default async function FinancePayrollDashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <DataTable
+            <DesignationPayBandsTable
               data={analytics.designationGrades as unknown as Record<string, unknown>[]}
-              columns={gradeColumns}
-              keyExtractor={(row) => String(row.id)}
-              pageSize={5}
             />
           </CardContent>
         </Card>

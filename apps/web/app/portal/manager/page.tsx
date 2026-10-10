@@ -1,15 +1,14 @@
 import { verifyPortalAccess } from "@/lib/auth/session";
-import { getManagerAnalytics, type TeamMemberItem } from "@/lib/data/analytics";
+import { getManagerAnalytics } from "@/lib/data/analytics";
 import { getTeamAttendanceRoster, getAttendanceCorrectionsList } from "@/lib/data/attendance";
 import { getTeamLeaveRequests } from "@/lib/data/leave";
 import { AttendanceRosterClient } from "@/components/attendance/AttendanceRosterClient";
 import { LeaveRequestsQueueClient } from "@/components/leave/LeaveRequestsQueueClient";
 import { CorrectionsQueueClient } from "@/components/attendance/CorrectionsQueueClient";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
-import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { MetricCard } from "@/components/ui/MetricCard";
-import { Badge } from "@/components/ui/Badge";
 import { Users, CheckCircle2, Clock, Calendar, AlertTriangle } from "lucide-react";
+import { ManagerTeamTable } from "./ManagerTeamTable";
 
 export const metadata = {
   title: "Reporting Manager Dashboard | EMS",
@@ -30,45 +29,6 @@ export default async function ManagerDashboard() {
 
   const presentCount = roster.filter((r) => r.status === "present" || r.isLate).length;
   const lateCount = roster.filter((r) => r.isLate).length;
-
-  const teamColumns: DataTableColumn<TeamMemberItem>[] = [
-    {
-      key: "employeeCode",
-      header: "Code",
-      render: (row) => <code>{row.employeeCode}</code>,
-    },
-    {
-      key: "fullName",
-      header: "Team Member",
-      render: (row) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{row.fullName}</div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{row.email ?? "No email"}</div>
-        </div>
-      ),
-    },
-    {
-      key: "department",
-      header: "Department",
-      render: (row) => <span>{row.department}</span>,
-    },
-    {
-      key: "designation",
-      header: "Designation",
-      render: (row) => <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>{row.designation}</span>,
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (row) => (
-        <Badge
-          label={row.status.toUpperCase()}
-          variant={row.status === "active" ? "success" : "warning"}
-          size="sm"
-        />
-      ),
-    },
-  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -166,14 +126,7 @@ export default async function ManagerDashboard() {
           <CardDescription>Employees assigned to your supervision via reporting_manager_id relationship</CardDescription>
         </CardHeader>
         <CardContent>
-          <DataTable
-            data={data.teamMembers}
-            columns={teamColumns}
-            keyExtractor={(row) => row.id}
-            pageSize={6}
-            emptyTitle="No direct reports assigned"
-            emptyDescription="Your profile currently has no staff members assigned to your supervision line."
-          />
+          <ManagerTeamTable data={data.teamMembers} />
         </CardContent>
       </Card>
 

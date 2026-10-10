@@ -1,11 +1,10 @@
-import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { SchemaDependencyNotice } from "@/components/ui/SchemaDependencyNotice";
 import { verifyPortalAccess } from "@/lib/auth/session";
-import { getDeptHeadAnalytics, type DeptMemberItem } from "@/lib/data/analytics";
+import { getDeptHeadAnalytics } from "@/lib/data/analytics";
 import { Users } from "lucide-react";
+import { DeptHeadMembersTable } from "./DeptHeadMembersTable";
 
 export const metadata = {
   title: "Department Head Overview | EMS",
@@ -17,65 +16,6 @@ export default async function DeptHeadDashboard() {
   const deptId = context.linkedEmployee?.departmentId ?? null;
 
   const data = await getDeptHeadAnalytics(orgId, deptId);
-
-  const deptColumns: DataTableColumn<DeptMemberItem>[] = [
-    {
-      key: "employeeCode",
-      header: "Code",
-      sortable: true,
-      render: (row) => (
-        <code
-          style={{
-            fontSize: "0.8rem",
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "var(--background)",
-          }}
-        >
-          {row.employeeCode}
-        </code>
-      ),
-    },
-    {
-      key: "fullName",
-      header: "Department Staff",
-      sortable: true,
-      render: (row) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{row.fullName}</div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-            {row.email ?? "No assigned email"}
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "designation",
-      header: "Designation",
-      sortable: true,
-      render: (row) => <span style={{ fontSize: "0.82rem" }}>{row.designation}</span>,
-    },
-    {
-      key: "status",
-      header: "Status",
-      render: (row) => (
-        <Badge
-          label={row.status.toUpperCase()}
-          variant={row.status === "active" ? "success" : "neutral"}
-          size="sm"
-        />
-      ),
-    },
-    {
-      key: "joiningDate",
-      header: "Date Joined",
-      render: (row) => (
-        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-          {new Date(row.joiningDate).toLocaleDateString()}
-        </span>
-      ),
-    },
-  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -141,18 +81,7 @@ export default async function DeptHeadDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable
-            data={data.departmentMembers}
-            columns={deptColumns}
-            keyExtractor={(row) => row.id}
-            pageSize={6}
-            emptyTitle="No staff members in department"
-            emptyDescription={
-              deptId
-                ? "There are currently 0 employees enrolled in your department."
-                : "Your profile is not currently linked to a specific department."
-            }
-          />
+          <DeptHeadMembersTable data={data.departmentMembers} />
         </CardContent>
       </Card>
     </div>

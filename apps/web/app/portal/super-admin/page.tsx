@@ -1,11 +1,10 @@
 import { DonutChart } from "@/components/charts/DonutChart";
-import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DataTable } from "@/components/ui/DataTable";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { verifyPortalAccess } from "@/lib/auth/session";
 import { getSuperAdminAnalytics } from "@/lib/data/analytics";
 import { Building2, Shield, Users } from "lucide-react";
+import { SuperAdminOrgsTable } from "./SuperAdminOrgsTable";
 
 export const metadata = {
   title: "Super Admin Dashboard | EMS",
@@ -14,61 +13,6 @@ export const metadata = {
 export default async function SuperAdminDashboard() {
   const context = await verifyPortalAccess("super_admin");
   const data = await getSuperAdminAnalytics();
-
-  const orgColumns = [
-    {
-      key: "name",
-      header: "Organization Name",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{String(row.name)}</div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-            Slug: <code>{String(row.slug)}</code>
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: "code",
-      header: "Tenant Code",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <code
-          style={{
-            fontSize: "0.8rem",
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "var(--background)",
-          }}
-        >
-          {String(row.code)}
-        </code>
-      ),
-    },
-    {
-      key: "is_active",
-      header: "Status",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <Badge
-          label={row.is_active ? "ACTIVE" : "INACTIVE"}
-          variant={row.is_active ? "success" : "danger"}
-          size="sm"
-        />
-      ),
-    },
-    {
-      key: "created_at",
-      header: "Onboarded Date",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-          {new Date(String(row.created_at)).toLocaleDateString()}
-        </span>
-      ),
-    },
-  ];
 
   const orgStatusDistribution = [
     { label: "Active Organizations", value: data.activeOrgs, color: "#10b981" },
@@ -201,14 +145,7 @@ export default async function SuperAdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable
-            data={data.organizations as unknown as Record<string, unknown>[]}
-            columns={orgColumns}
-            keyExtractor={(row) => String(row.id)}
-            pageSize={5}
-            emptyTitle="No organizations found"
-            emptyDescription="No institutional organizations are configured in the platform."
-          />
+          <SuperAdminOrgsTable data={data.organizations as unknown as Record<string, unknown>[]} />
         </CardContent>
       </Card>
     </div>

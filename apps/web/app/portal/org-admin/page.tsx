@@ -1,11 +1,11 @@
 import { BarChart } from "@/components/charts/BarChart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { SchemaDependencyNotice } from "@/components/ui/SchemaDependencyNotice";
 import { verifyPortalAccess } from "@/lib/auth/session";
-import { getOrgAdminAnalytics, type AuditHistoryItem } from "@/lib/data/analytics";
+import { getOrgAdminAnalytics } from "@/lib/data/analytics";
 import { Briefcase, Building2, GitFork, History, Users } from "lucide-react";
+import { OrgAdminHistoryTable } from "./OrgAdminHistoryTable";
 
 export const metadata = {
   title: "Organization Admin Dashboard | EMS",
@@ -20,58 +20,6 @@ export default async function OrgAdminDashboard() {
     label: d.category,
     value: d.count,
   }));
-
-  const historyColumns: DataTableColumn<AuditHistoryItem>[] = [
-    {
-      key: "employeeCode",
-      header: "Employee",
-      sortable: true,
-      render: (row) => (
-        <code
-          style={{
-            fontSize: "0.8rem",
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "var(--background)",
-          }}
-        >
-          {row.employeeCode}
-        </code>
-      ),
-    },
-    {
-      key: "fieldName",
-      header: "Field Changed",
-      sortable: true,
-      render: (row) => <span style={{ fontWeight: 600 }}>{row.fieldName}</span>,
-    },
-    {
-      key: "oldValue",
-      header: "Previous Value",
-      render: (row) => (
-        <span style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>
-          {row.oldValue ?? "—"}
-        </span>
-      ),
-    },
-    {
-      key: "newValue",
-      header: "New Value",
-      render: (row) => (
-        <span style={{ fontWeight: 600, color: "var(--primary)" }}>{row.newValue ?? "—"}</span>
-      ),
-    },
-    {
-      key: "createdAt",
-      header: "Timestamp",
-      sortable: true,
-      render: (row) => (
-        <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-          {new Date(row.createdAt).toLocaleDateString()}
-        </span>
-      ),
-    },
-  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -192,14 +140,7 @@ export default async function OrgAdminDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable
-            data={data.recentHistory}
-            columns={historyColumns}
-            keyExtractor={(row) => row.id}
-            pageSize={5}
-            emptyTitle="No recent change logs"
-            emptyDescription="No field modifications have been recorded for employees in this organization."
-          />
+          <OrgAdminHistoryTable data={data.recentHistory} />
         </CardContent>
       </Card>
     </div>

@@ -1,10 +1,10 @@
 import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
-import { DataTable } from "@/components/ui/DataTable";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { verifyPortalAccess } from "@/lib/auth/session";
 import { getAuditorAnalytics } from "@/lib/data/analytics";
 import { Eye, FileSearch, History, Lock, Shield, Users } from "lucide-react";
+import { AuditorHistoryTable } from "./AuditorHistoryTable";
 
 export const metadata = {
   title: "Statutory Compliance & Audit Log | EMS",
@@ -14,71 +14,6 @@ export default async function AuditorDashboard() {
   const context = await verifyPortalAccess("auditor");
   const orgId = context.activeOrganization?.id ?? "";
   const data = await getAuditorAnalytics(orgId);
-
-  const auditColumns = [
-    {
-      key: "employeeCode",
-      header: "Employee Code",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <code
-          style={{
-            fontSize: "0.8rem",
-            padding: "2px 6px",
-            borderRadius: 4,
-            background: "var(--background)",
-          }}
-        >
-          {String(row.employeeCode)}
-        </code>
-      ),
-    },
-    {
-      key: "fieldName",
-      header: "Audited Entity Field",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <span style={{ fontWeight: 600 }}>{String(row.fieldName)}</span>
-      ),
-    },
-    {
-      key: "oldValue",
-      header: "Prior State",
-      render: (row: Record<string, unknown>) => (
-        <span style={{ color: "var(--text-muted)", fontSize: "0.82rem" }}>
-          {typeof row.oldValue === "string" ? row.oldValue : "—"}
-        </span>
-      ),
-    },
-    {
-      key: "newValue",
-      header: "Post State",
-      render: (row: Record<string, unknown>) => (
-        <span style={{ fontWeight: 600, color: "var(--primary)" }}>
-          {typeof row.newValue === "string" ? row.newValue : "—"}
-        </span>
-      ),
-    },
-    {
-      key: "changeReason",
-      header: "Justification",
-      render: (row: Record<string, unknown>) => (
-        <span style={{ fontSize: "0.8rem", color: "var(--text-muted)" }}>
-          {typeof row.changeReason === "string" ? row.changeReason : "Standard lifecycle"}
-        </span>
-      ),
-    },
-    {
-      key: "createdAt",
-      header: "Recorded Timestamp",
-      sortable: true,
-      render: (row: Record<string, unknown>) => (
-        <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-          {new Date(String(row.createdAt)).toLocaleString()}
-        </span>
-      ),
-    },
-  ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -161,14 +96,7 @@ export default async function AuditorDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <DataTable
-            data={data.auditTrail as unknown as Record<string, unknown>[]}
-            columns={auditColumns}
-            keyExtractor={(row) => String(row.id)}
-            pageSize={8}
-            emptyTitle="No audit records found"
-            emptyDescription="There are currently no logged personnel change records for this tenant."
-          />
+          <AuditorHistoryTable data={data.auditTrail as unknown as Record<string, unknown>[]} />
         </CardContent>
       </Card>
     </div>
