@@ -14,14 +14,16 @@ import {
   ChevronDown,
   FileCheck,
   FileText,
+  History,
   Home,
+  Key,
   Laptop,
   LogOut,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
   PieChart,
-  Shield,
+  Sliders,
   User,
   UserCheck,
   Users,
@@ -53,6 +55,7 @@ export function AppShell({ context, children }: AppShellProps) {
   const getNavIcon = (id: string) => {
     switch (id) {
       case "dashboard":
+      case "overview":
       case "super_overview":
       case "org_overview":
       case "hr_overview":
@@ -65,6 +68,7 @@ export function AppShell({ context, children }: AppShellProps) {
       case "auditor_overview":
         return <Home size={18} />;
       case "employees":
+      case "members":
       case "org_employees":
       case "team_members":
       case "dept_members":
@@ -75,6 +79,10 @@ export function AppShell({ context, children }: AppShellProps) {
         return <Building2 size={18} />;
       case "departments":
         return <Building2 size={18} />;
+      case "roles":
+        return <Key size={18} />;
+      case "policies":
+        return <Sliders size={18} />;
       case "payroll":
       case "compensation":
         return <PieChart size={18} />;
@@ -96,9 +104,10 @@ export function AppShell({ context, children }: AppShellProps) {
       case "documents":
       case "my_documents":
         return <FileText size={18} />;
+      case "audit":
       case "audit_logs":
       case "audit_reports":
-        return <Shield size={18} />;
+        return <History size={18} />;
       default:
         return <Home size={18} />;
     }
