@@ -54,34 +54,40 @@ export async function signInAction(
   }
 
   const { email, password } = validation.data;
-  const supabase = await createClient();
+  let target = "/portal";
 
-  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  try {
+    const supabase = await createClient();
 
-  if (authError) {
-    return { error: formatAuthErrorMessage(authError) };
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (authError) {
+      return { error: formatAuthErrorMessage(authError) };
+    }
+
+    // Verify account is active in profiles
+    const profileResponse = await supabase
+      .from("profiles")
+      .select("is_active, organization_id")
+      .eq("id", authData.user.id)
+      .maybeSingle<ProfileStatusRow>();
+
+    if (profileResponse.data?.is_active === false) {
+      await supabase.auth.signOut();
+      return {
+        error: "This account has been deactivated. Please contact your organization administrator.",
+      };
+    }
+
+    const redirectToRaw = formData.get("redirectTo");
+    const redirectToStr = typeof redirectToRaw === "string" ? redirectToRaw : null;
+    target = sanitizeRedirectUrl(redirectToStr, "/portal");
+  } catch (err) {
+    return { error: formatAuthErrorMessage(err) };
   }
-
-  // Verify account is active in profiles
-  const profileResponse = await supabase
-    .from("profiles")
-    .select("is_active, organization_id")
-    .eq("id", authData.user.id)
-    .maybeSingle<ProfileStatusRow>();
-
-  if (profileResponse.data?.is_active === false) {
-    await supabase.auth.signOut();
-    return {
-      error: "This account has been deactivated. Please contact your organization administrator.",
-    };
-  }
-
-  const redirectToRaw = formData.get("redirectTo");
-  const redirectToStr = typeof redirectToRaw === "string" ? redirectToRaw : null;
-  const target = sanitizeRedirectUrl(redirectToStr, "/portal");
 
   redirect(target);
 }

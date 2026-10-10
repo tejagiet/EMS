@@ -92,6 +92,9 @@ export function formatAuthErrorMessage(error: unknown): string {
     if (msg.includes("rate limit")) {
       return "Too many requests. Please wait a moment before trying again.";
     }
+    if (msg.includes("fetch failed") || msg.includes("Failed to fetch") || msg.includes("ECONNREFUSED")) {
+      return "Unable to connect to authentication server. Please check your Supabase connection and environment configuration.";
+    }
     return msg || "Authentication service error.";
   }
   return "An unexpected error occurred.";
