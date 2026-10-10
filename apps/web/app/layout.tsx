@@ -1,4 +1,3 @@
-import { INSTITUTION } from "@ems/config";
 import type { Metadata } from "next";
 import "./globals.css";
 
@@ -16,16 +15,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <header className="institutional-banner">
-          <h2>
-            {INSTITUTION.name} — {INSTITUTION.department}
-          </h2>
-          <p>
-            {INSTITUTION.category} | Batch {INSTITUTION.batch} | {INSTITUTION.projectName} —{" "}
-            {INSTITUTION.team}
-          </p>
-          <div className="badge">Publisher ID: {INSTITUTION.publisherId}</div>
-        </header>
         {children}
       </body>
     </html>
