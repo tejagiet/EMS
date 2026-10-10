@@ -370,11 +370,11 @@ export interface EmployeeImportResult {
   totalRows: number;
   importedCount: number;
   failedCount: number;
-  errors: Array<{
+  errors: {
     rowNumber: number;
     employeeCode?: string | undefined;
     message: string;
-  }>;
+  }[];
 }
 
 // =============================================================================

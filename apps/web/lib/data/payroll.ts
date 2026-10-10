@@ -427,7 +427,7 @@ export async function getPayslipById(
 ): Promise<PayrollRecord | null> {
   const supabase = await createClient();
 
-  let query = supabase
+  const query = supabase
     .from("payroll_records")
     .select(`
       *,
