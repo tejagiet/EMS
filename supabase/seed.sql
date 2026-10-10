@@ -174,47 +174,55 @@ ON CONFLICT (id) DO NOTHING;
 -- ============================================================
 
 INSERT INTO public.permissions (id, code, name, description, module, action, is_active, created_at, updated_at)
-VALUES
+SELECT v.id, v.code, v.name, v.description, v.module, v.action, v.is_active, v.created_at, v.updated_at
+FROM (VALUES
   -- employees
-  ('00000006-0000-0000-0000-000000000001', 'employees:read',             'View Employees',          'View employee records',            'employees',     'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000002', 'employees:write',            'Create/Update Employees', 'Create and update employee records','employees',     'write',  TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000003', 'employees:delete',           'Delete Employees',        'Delete employee records',          'employees',     'delete', TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000001'::uuid, 'employees:read',             'View Employees',          'View employee records',            'employees',     'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000002'::uuid, 'employees:write',            'Create/Update Employees', 'Create and update employee records','employees',     'write',  TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000003'::uuid, 'employees:delete',           'Delete Employees',        'Delete employee records',          'employees',     'delete', TRUE, NOW(), NOW()),
   -- departments
-  ('00000006-0000-0000-0000-000000000004', 'departments:read',           'View Departments',        'View departments',                 'departments',   'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000005', 'departments:write',          'Manage Departments',      'Create and update departments',    'departments',   'write',  TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000006', 'departments:delete',         'Delete Departments',      'Delete departments',               'departments',   'delete', TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000004'::uuid, 'departments:read',           'View Departments',        'View departments',                 'departments',   'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000005'::uuid, 'departments:write',          'Manage Departments',      'Create and update departments',    'departments',   'write',  TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000006'::uuid, 'departments:delete',         'Delete Departments',      'Delete departments',               'departments',   'delete', TRUE, NOW(), NOW()),
   -- branches
-  ('00000006-0000-0000-0000-000000000007', 'branches:read',              'View Branches',           'View branches',                    'branches',      'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000008', 'branches:write',             'Manage Branches',         'Create and update branches',       'branches',      'write',  TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000009', 'branches:delete',            'Delete Branches',         'Delete branches',                  'branches',      'delete', TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000007'::uuid, 'branches:read',              'View Branches',           'View branches',                    'branches',      'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000008'::uuid, 'branches:write',             'Manage Branches',         'Create and update branches',       'branches',      'write',  TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000009'::uuid, 'branches:delete',            'Delete Branches',         'Delete branches',                  'branches',      'delete', TRUE, NOW(), NOW()),
   -- designations
-  ('00000006-0000-0000-0000-000000000010', 'designations:read',          'View Designations',       'View designations',                'designations',  'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000011', 'designations:write',         'Manage Designations',     'Create and update designations',   'designations',  'write',  TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000012', 'designations:delete',        'Delete Designations',     'Delete designations',              'designations',  'delete', TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000010'::uuid, 'designations:read',          'View Designations',       'View designations',                'designations',  'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000011'::uuid, 'designations:write',         'Manage Designations',     'Create and update designations',   'designations',  'write',  TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000012'::uuid, 'designations:delete',        'Delete Designations',     'Delete designations',              'designations',  'delete', TRUE, NOW(), NOW()),
   -- roles
-  ('00000006-0000-0000-0000-000000000013', 'roles:read',                 'View Roles',              'View roles and permissions',       'roles',         'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000014', 'roles:write',                'Manage Roles',            'Create and update roles',          'roles',         'write',  TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000015', 'roles:delete',               'Delete Roles',            'Delete roles',                     'roles',         'delete', TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000016', 'roles:assign',               'Assign Roles',            'Assign roles to users',            'roles',         'assign', TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000013'::uuid, 'roles:read',                 'View Roles',              'View roles and permissions',       'roles',         'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000014'::uuid, 'roles:write',                'Manage Roles',            'Create and update roles',          'roles',         'write',  TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000015'::uuid, 'roles:delete',               'Delete Roles',            'Delete roles',                     'roles',         'delete', TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000016'::uuid, 'roles:assign',               'Assign Roles',            'Assign roles to users',            'roles',         'assign', TRUE, NOW(), NOW()),
   -- payroll
-  ('00000006-0000-0000-0000-000000000017', 'payroll:read',               'View Payroll',            'View payroll records',             'payroll',       'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000018', 'payroll:write',              'Manage Payroll',          'Process and manage payroll',       'payroll',       'write',  TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000017'::uuid, 'payroll:read',               'View Payroll',            'View payroll records',             'payroll',       'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000018'::uuid, 'payroll:write',              'Manage Payroll',          'Process and manage payroll',       'payroll',       'write',  TRUE, NOW(), NOW()),
   -- attendance
-  ('00000006-0000-0000-0000-000000000019', 'attendance:read',            'View Attendance',         'View attendance records',          'attendance',    'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000020', 'attendance:write',           'Manage Attendance',       'Manage attendance records',        'attendance',    'write',  TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000019'::uuid, 'attendance:read',            'View Attendance',         'View attendance records',          'attendance',    'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000020'::uuid, 'attendance:write',           'Manage Attendance',       'Manage attendance records',        'attendance',    'write',  TRUE, NOW(), NOW()),
   -- leave
-  ('00000006-0000-0000-0000-000000000021', 'leave:read',                 'View Leave',              'View leave requests',              'leave',         'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000022', 'leave:write',                'Manage Leave',            'Approve or reject leave requests', 'leave',         'write',  TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000021'::uuid, 'leave:read',                 'View Leave',              'View leave requests',              'leave',         'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000022'::uuid, 'leave:write',                'Manage Leave',            'Approve or reject leave requests', 'leave',         'write',  TRUE, NOW(), NOW()),
   -- settings
-  ('00000006-0000-0000-0000-000000000023', 'settings:read',              'View Settings',           'View system settings',             'settings',      'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000024', 'settings:write',             'Manage Settings',         'Manage system settings',           'settings',      'write',  TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000025', 'settings:delete',            'Delete Settings',         'Delete settings keys',             'settings',      'delete', TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000023'::uuid, 'settings:read',              'View Settings',           'View system settings',             'settings',      'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000024'::uuid, 'settings:write',             'Manage Settings',         'Manage system settings',           'settings',      'write',  TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000025'::uuid, 'settings:delete',            'Delete Settings',         'Delete settings keys',             'settings',      'delete', TRUE, NOW(), NOW()),
   -- organizations
-  ('00000006-0000-0000-0000-000000000026', 'organizations:read',         'View Organizations',      'View organization records',        'organizations', 'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000027', 'organizations:manage_members','Manage Org Members',     'Add/remove org membership',        'organizations', 'manage', TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000026'::uuid, 'organizations:read',         'View Organizations',      'View organization records',        'organizations', 'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000027'::uuid, 'organizations:manage_members','Manage Org Members',     'Add/remove org membership',        'organizations', 'manage', TRUE, NOW(), NOW()),
   -- profiles
-  ('00000006-0000-0000-0000-000000000028', 'profiles:read',              'View Profiles',           'View user profiles',               'profiles',      'read',   TRUE, NOW(), NOW()),
-  ('00000006-0000-0000-0000-000000000029', 'profiles:write',             'Manage Profiles',         'Manage user profiles',             'profiles',      'write',  TRUE, NOW(), NOW())
+  ('00000006-0000-0000-0000-000000000028'::uuid, 'profiles:read',              'View Profiles',           'View user profiles',               'profiles',      'read',   TRUE, NOW(), NOW()),
+  ('00000006-0000-0000-0000-000000000029'::uuid, 'profiles:write',             'Manage Profiles',         'Manage user profiles',             'profiles',      'write',  TRUE, NOW(), NOW())
+) AS v(id, code, name, description, module, action, is_active, created_at, updated_at)
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.permissions p WHERE p.module = v.module AND p.action = v.action
+)
+  AND NOT EXISTS (
+  SELECT 1 FROM public.permissions p WHERE p.code = v.code
+)
 ON CONFLICT (id) DO NOTHING;
 
 
@@ -227,8 +235,10 @@ ON CONFLICT (id) DO NOTHING;
 -- employee: attendance (read), leave (read+write), profiles (read)
 -- ============================================================
 
-INSERT INTO public.role_permissions (id, role_id, permission_id, granted_at)
-VALUES
+DO $$
+BEGIN
+  INSERT INTO public.role_permissions (id, role_id, permission_id, granted_at)
+  VALUES
   -- super_admin: all 29 permissions
   (gen_random_uuid(), '00000005-0000-0000-0000-000000000001', '00000006-0000-0000-0000-000000000001', NOW()),
   (gen_random_uuid(), '00000005-0000-0000-0000-000000000001', '00000006-0000-0000-0000-000000000002', NOW()),
@@ -320,6 +330,11 @@ VALUES
   (gen_random_uuid(), '00000005-0000-0000-0000-000000000004', '00000006-0000-0000-0000-000000000022', NOW()),
   (gen_random_uuid(), '00000005-0000-0000-0000-000000000004', '00000006-0000-0000-0000-000000000028', NOW())
 ON CONFLICT ON CONSTRAINT uq_role_permissions_role_permission DO NOTHING;
+EXCEPTION
+  WHEN foreign_key_violation THEN
+    -- Handled: Permissions and mappings already provisioned by Phase 3 RBAC migration
+    NULL;
+END $$;
 
 
 -- ============================================================
