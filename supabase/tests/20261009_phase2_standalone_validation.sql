@@ -117,6 +117,10 @@ BEGIN
   END IF;
 
   -- Clean up any previous test artifacts
+  DELETE FROM public.employee_history
+  WHERE employee_id IN (
+    SELECT id FROM public.employees WHERE employee_code = 'TEST-CODE-VALIDATE'
+  );
   DELETE FROM public.employees WHERE employee_code = 'TEST-CODE-VALIDATE';
 
   -- Insert employee in Org 1
@@ -168,7 +172,11 @@ BEGIN
     RAISE WARNING '[FAIL] Multi-tenancy: Failed to insert same employee_code in separate org';
   END IF;
 
-  -- Clean up test records
+  -- Clean up test records (history first to satisfy FK constraint)
+  DELETE FROM public.employee_history
+  WHERE employee_id IN (
+    SELECT id FROM public.employees WHERE employee_code = 'TEST-CODE-VALIDATE'
+  );
   DELETE FROM public.employees WHERE employee_code = 'TEST-CODE-VALIDATE';
 
   -- ---------------------------------------------------------------------------

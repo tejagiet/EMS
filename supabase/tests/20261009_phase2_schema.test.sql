@@ -152,7 +152,11 @@ DO $$
 DECLARE
   v_org_id UUID := '00000001-0000-0000-0000-000000000001';
 BEGIN
-  -- First insert a test employee (clean up first)
+  -- First insert a test employee (clean up history and employee first)
+  DELETE FROM public.employee_history
+  WHERE employee_id IN (
+    SELECT id FROM public.employees WHERE employee_code = 'TEST-DUP-001'
+  );
   DELETE FROM public.employees WHERE employee_code = 'TEST-DUP-001' AND organization_id = v_org_id;
   INSERT INTO public.employees (organization_id, employee_code, employment_type, date_of_joining)
   VALUES (v_org_id, 'TEST-DUP-001', 'full_time', CURRENT_DATE);
@@ -189,6 +193,10 @@ SELECT lives_ok(
 );
 
 -- Clean up
+DELETE FROM public.employee_history
+WHERE employee_id IN (
+  SELECT id FROM public.employees WHERE employee_code = 'TEST-DUP-001'
+);
 DELETE FROM public.employees WHERE employee_code = 'TEST-DUP-001';
 
 -- ============================================================
