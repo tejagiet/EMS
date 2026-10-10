@@ -357,6 +357,16 @@ AS $$
 $$;
 
 -- 4.3 Check Reporting Line Hierarchy (For Manager Portal Access)
+CREATE OR REPLACE FUNCTION public.get_my_employee_ids()
+RETURNS SETOF uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+  SELECT id FROM public.employees WHERE profile_id = auth.uid();
+$$;
+
 CREATE OR REPLACE FUNCTION public.is_manager_of_employee(p_employee_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -371,7 +381,7 @@ AS $$
       AND (
         -- Directly reported to manager's linked employee record
         e.reporting_manager_id IN (
-          SELECT mgr.id FROM public.employees mgr WHERE mgr.profile_id = auth.uid()
+          SELECT public.get_my_employee_ids()
         )
         -- Or user holds executive/admin role
         OR public.has_permission('employee.write')
@@ -382,13 +392,14 @@ $$;
 -- Grant EXECUTE to authenticated users
 GRANT EXECUTE ON FUNCTION public.get_my_active_roles(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_my_permissions(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_my_employee_ids() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.is_manager_of_employee(uuid) TO authenticated;
 
 -- =============================================================================
 -- SECTION 5: Enhanced Row Level Security Policies
 -- =============================================================================
 
--- Ensure manager reporting-line employee selection is permitted
+-- Ensure manager reporting-line employee selection is permitted without policy recursion
 DROP POLICY IF EXISTS employees_select_manager_reporting ON public.employees;
 CREATE POLICY employees_select_manager_reporting
   ON public.employees
@@ -397,7 +408,7 @@ CREATE POLICY employees_select_manager_reporting
     public.is_org_member(organization_id)
     AND (
       profile_id = auth.uid()
-      OR reporting_manager_id IN (SELECT m.id FROM public.employees m WHERE m.profile_id = auth.uid())
+      OR reporting_manager_id IN (SELECT public.get_my_employee_ids())
       OR public.has_permission('employee.read')
     )
   );

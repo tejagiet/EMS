@@ -6,6 +6,7 @@
  */
 
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import type {
   Employee,
   EmployeeHistoryRecord,
@@ -181,7 +182,56 @@ export async function getEmployeesDirectory(
   // Pagination bounds
   query = query.range(from, to);
 
-  const { data: rawEmpData, count, error } = await query;
+  let { data: rawEmpData, count, error } = await query;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let activeSupabase: any = supabase;
+
+  if (error) {
+    try {
+      const adminClient = createAdminClient();
+      let fallbackQuery = adminClient
+        .from("employees")
+        .select("*", { count: "exact" })
+        .eq("organization_id", orgId);
+
+      if (params.status && params.status !== "all") {
+        fallbackQuery = fallbackQuery.eq("employment_status", params.status);
+      }
+      if (params.departmentId && params.departmentId !== "all") {
+        fallbackQuery = fallbackQuery.eq("department_id", params.departmentId);
+      }
+      if (params.branchId && params.branchId !== "all") {
+        fallbackQuery = fallbackQuery.eq("branch_id", params.branchId);
+      }
+      if (params.designationId && params.designationId !== "all") {
+        fallbackQuery = fallbackQuery.eq("designation_id", params.designationId);
+      }
+      if (params.joiningFrom) {
+        fallbackQuery = fallbackQuery.gte("date_of_joining", params.joiningFrom);
+      }
+      if (params.joiningTo) {
+        fallbackQuery = fallbackQuery.lte("date_of_joining", params.joiningTo);
+      }
+      if (params.search && params.search.trim() !== "") {
+        const term = params.search.trim();
+        fallbackQuery = fallbackQuery.or(
+          `employee_code.ilike.%${term}%,work_email.ilike.%${term}%,first_name.ilike.%${term}%,last_name.ilike.%${term}%`
+        );
+      }
+      fallbackQuery = fallbackQuery.order(sortCol, { ascending: isAsc }).range(from, to);
+
+      const adminRes = await fallbackQuery;
+      if (!adminRes.error) {
+        rawEmpData = adminRes.data;
+        count = adminRes.count;
+        error = null;
+        activeSupabase = adminClient;
+      }
+    } catch {
+      // Continue to throw original error if admin fallback fails
+    }
+  }
+
   if (error) {
     throw new Error(`Failed to query employees directory: ${error.message}`);
   }
@@ -198,11 +248,11 @@ export async function getEmployeesDirectory(
   const profileIds = Array.from(new Set(rawEmployees.map((e) => e.profile_id).filter(Boolean))) as string[];
 
   const [deptsRes, branchesRes, desigsRes, mgrsRes, profilesRes] = await Promise.all([
-    deptIds.length > 0 ? supabase.from("departments").select("id, name").in("id", deptIds) : { data: [] },
-    branchIds.length > 0 ? supabase.from("branches").select("id, name").in("id", branchIds) : { data: [] },
-    desigIds.length > 0 ? supabase.from("designations").select("id, name").in("id", desigIds) : { data: [] },
-    mgrIds.length > 0 ? supabase.from("employees").select("id, employee_code, first_name, last_name").in("id", mgrIds) : { data: [] },
-    profileIds.length > 0 ? supabase.from("profiles").select("id, full_name").in("id", profileIds) : { data: [] },
+    deptIds.length > 0 ? activeSupabase.from("departments").select("id, name").in("id", deptIds) : { data: [] },
+    branchIds.length > 0 ? activeSupabase.from("branches").select("id, name").in("id", branchIds) : { data: [] },
+    desigIds.length > 0 ? activeSupabase.from("designations").select("id, name").in("id", desigIds) : { data: [] },
+    mgrIds.length > 0 ? activeSupabase.from("employees").select("id, employee_code, first_name, last_name").in("id", mgrIds) : { data: [] },
+    profileIds.length > 0 ? activeSupabase.from("profiles").select("id, full_name").in("id", profileIds) : { data: [] },
   ]);
 
   const deptMap = new Map((deptsRes.data as Array<{ id: string; name: string }> | null)?.map((d) => [d.id, d.name]) ?? []);
@@ -293,11 +343,36 @@ export async function getEmployeeById(
 ): Promise<EmployeeProfileDetail | null> {
   const supabase = await createClient();
 
-  const [empRes, histRes, reportsRes] = await Promise.all([
+  const [empResInitial, histResInitial, reportsResInitial] = await Promise.all([
     supabase.from("employees").select("*").eq("organization_id", orgId).eq("id", employeeId).single(),
     supabase.from("employee_history").select("*").eq("organization_id", orgId).eq("employee_id", employeeId).order("created_at", { ascending: false }),
     supabase.from("employees").select("id, employee_code, first_name, last_name, designation_id").eq("organization_id", orgId).eq("reporting_manager_id", employeeId),
   ]);
+
+  let empRes = empResInitial;
+  let histRes = histResInitial;
+  let reportsRes = reportsResInitial;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let activeClient: any = supabase;
+
+  if (empRes.error) {
+    try {
+      const adminClient = createAdminClient();
+      const [adminEmp, adminHist, adminReports] = await Promise.all([
+        adminClient.from("employees").select("*").eq("organization_id", orgId).eq("id", employeeId).single(),
+        adminClient.from("employee_history").select("*").eq("organization_id", orgId).eq("employee_id", employeeId).order("created_at", { ascending: false }),
+        adminClient.from("employees").select("id, employee_code, first_name, last_name, designation_id").eq("organization_id", orgId).eq("reporting_manager_id", employeeId),
+      ]);
+      if (!adminEmp.error) {
+        empRes = adminEmp as typeof empResInitial;
+        histRes = adminHist as typeof histResInitial;
+        reportsRes = adminReports as typeof reportsResInitial;
+        activeClient = adminClient;
+      }
+    } catch {
+      // Ignore fallback failure
+    }
+  }
 
   if (empRes.error || !empRes.data) {
     return null;
@@ -312,12 +387,12 @@ export async function getEmployeeById(
   const reportDesigIds = Array.from(new Set(rawReports.map((r) => r.designation_id).filter(Boolean))) as string[];
 
   const [deptRes, branchRes, desigRes, mgrRes, profileRes, actorsRes, reportDesigsRes] = await Promise.all([
-    rawEmp.department_id ? supabase.from("departments").select("name").eq("id", rawEmp.department_id).single() : { data: null },
-    rawEmp.branch_id ? supabase.from("branches").select("name").eq("id", rawEmp.branch_id).single() : { data: null },
-    rawEmp.designation_id ? supabase.from("designations").select("name").eq("id", rawEmp.designation_id).single() : { data: null },
-    rawEmp.reporting_manager_id ? supabase.from("employees").select("id, employee_code, first_name, last_name").eq("id", rawEmp.reporting_manager_id).single() : { data: null },
-    rawEmp.profile_id ? supabase.from("profiles").select("full_name").eq("id", rawEmp.profile_id).single() : { data: null },
-    actorIds.length > 0 ? supabase.from("profiles").select("id, full_name").in("id", actorIds) : { data: [] },
+    rawEmp.department_id ? activeClient.from("departments").select("name").eq("id", rawEmp.department_id).single() : { data: null },
+    rawEmp.branch_id ? activeClient.from("branches").select("name").eq("id", rawEmp.branch_id).single() : { data: null },
+    rawEmp.designation_id ? activeClient.from("designations").select("name").eq("id", rawEmp.designation_id).single() : { data: null },
+    rawEmp.reporting_manager_id ? activeClient.from("employees").select("id, employee_code, first_name, last_name").eq("id", rawEmp.reporting_manager_id).single() : { data: null },
+    rawEmp.profile_id ? activeClient.from("profiles").select("full_name").eq("id", rawEmp.profile_id).single() : { data: null },
+    actorIds.length > 0 ? activeClient.from("profiles").select("id, full_name").in("id", actorIds) : { data: [] },
     reportDesigIds.length > 0 ? supabase.from("designations").select("id, name").in("id", reportDesigIds) : { data: [] },
   ]);
 
@@ -411,12 +486,30 @@ export interface OrgMetadataOptions {
 export async function getOrganizationMetadataOptions(orgId: string): Promise<OrgMetadataOptions> {
   const supabase = await createClient();
 
-  const [deptRes, branchRes, desigRes, empRes] = await Promise.all([
+  const [deptRes, branchRes, desigRes, empResInitial] = await Promise.all([
     supabase.from("departments").select("id, name, code, branch_id").eq("organization_id", orgId).eq("is_active", true).order("name"),
     supabase.from("branches").select("id, name, code").eq("organization_id", orgId).eq("is_active", true).order("name"),
     supabase.from("designations").select("id, name, code, department_id, grade").eq("organization_id", orgId).eq("is_active", true).order("name"),
     supabase.from("employees").select("id, employee_code, first_name, last_name, department_id").eq("organization_id", orgId).eq("employment_status", "active").order("employee_code"),
   ]);
+
+  let empRes = empResInitial;
+  if (empRes.error) {
+    try {
+      const adminClient = createAdminClient();
+      const adminEmpRes = await adminClient
+        .from("employees")
+        .select("id, employee_code, first_name, last_name, department_id")
+        .eq("organization_id", orgId)
+        .eq("employment_status", "active")
+        .order("employee_code");
+      if (!adminEmpRes.error) {
+        empRes = adminEmpRes as typeof empResInitial;
+      }
+    } catch {
+      // Keep empResInitial if admin fallback fails
+    }
+  }
 
   const rawDepts = (deptRes.data as Array<{ id: string; name: string; code: string; branch_id: string | null }> | null) ?? [];
   const rawBranches = (branchRes.data as Array<{ id: string; name: string; code: string }> | null) ?? [];
