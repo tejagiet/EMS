@@ -97,19 +97,24 @@ BEGIN
   -- 5. Test Employee Code Isolation (Same Org vs Cross Org)
   -- ---------------------------------------------------------------------------
   -- Ensure test parent organizations exist (self-bootstrapping if seed not yet applied)
-  INSERT INTO public.organizations (id, name, slug, code)
-  VALUES 
-    (v_org1_id, 'GIET Polytechnic College', 'giet-polytechnic', 'GIETP'),
-    (v_org2_id, 'Apex Solutions Pvt Ltd', 'apex-solutions', 'APEXS')
-  ON CONFLICT (id) DO NOTHING
-  ON CONFLICT (code) DO NOTHING;
+  IF NOT EXISTS (SELECT 1 FROM public.organizations WHERE id = v_org1_id) THEN
+    INSERT INTO public.organizations (id, name, slug, code)
+    VALUES (v_org1_id, 'GIET Polytechnic College', 'giet-polytechnic', 'GIETP')
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM public.organizations WHERE id = v_org2_id) THEN
+    INSERT INTO public.organizations (id, name, slug, code)
+    VALUES (v_org2_id, 'Apex Solutions Pvt Ltd', 'apex-solutions', 'APEXS')
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
 
   -- Ensure test branch exists for Org 1 (for cross-boundary test)
-  INSERT INTO public.branches (id, organization_id, name, code)
-  VALUES 
-    ('00000002-0000-0000-0000-000000000001', v_org1_id, 'GIET Main Campus', 'MAIN')
-  ON CONFLICT (id) DO NOTHING
-  ON CONFLICT (organization_id, code) DO NOTHING;
+  IF NOT EXISTS (SELECT 1 FROM public.branches WHERE id = '00000002-0000-0000-0000-000000000001') THEN
+    INSERT INTO public.branches (id, organization_id, name, code)
+    VALUES ('00000002-0000-0000-0000-000000000001', v_org1_id, 'GIET Main Campus', 'MAIN')
+    ON CONFLICT (id) DO NOTHING;
+  END IF;
 
   -- Clean up any previous test artifacts
   DELETE FROM public.employees WHERE employee_code = 'TEST-CODE-VALIDATE';
