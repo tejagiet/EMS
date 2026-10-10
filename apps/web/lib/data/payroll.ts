@@ -8,6 +8,14 @@ import type {
   SalaryComponentItem,
 } from "@ems/types";
 
+export type {
+  SalaryStructure,
+  PayrollRun,
+  PayrollRecord,
+  PayrollApprovalHistoryItem,
+  SalaryComponentItem,
+};
+
 interface RawSalaryStructure {
   id: string;
   organization_id: string;

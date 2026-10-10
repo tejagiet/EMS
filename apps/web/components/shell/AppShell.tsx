@@ -9,11 +9,16 @@ import {
 import { getInitials } from "@ems/shared";
 import type { AuthenticatedUserContext, PortalRole } from "@ems/types";
 import {
+  Bell,
   Briefcase,
   Building2,
+  Calendar,
+  CheckSquare,
   ChevronDown,
+  CreditCard,
   FileCheck,
   FileText,
+  FolderDown,
   History,
   Home,
   Key,
@@ -23,10 +28,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   PieChart,
+  Settings,
   Sliders,
   User,
   UserCheck,
   Users,
+  Wrench,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -72,41 +79,72 @@ export function AppShell({ context, children }: AppShellProps) {
       case "org_employees":
       case "team_members":
       case "dept_members":
+      case "my-team":
+      case "department-staff":
         return <Users size={18} />;
       case "organizations":
       case "org_structure":
       case "branches":
-        return <Building2 size={18} />;
       case "departments":
+      case "designations":
         return <Building2 size={18} />;
       case "roles":
         return <Key size={18} />;
       case "policies":
         return <Sliders size={18} />;
+      case "settings":
+        return <Settings size={18} />;
       case "payroll":
       case "compensation":
+      case "salary-structures":
+      case "payroll-runs":
+      case "tax-reports":
+      case "payroll-audit":
         return <PieChart size={18} />;
+      case "payslips":
+        return <CreditCard size={18} />;
+      case "approvals":
+        return <CheckSquare size={18} />;
       case "recruitment":
       case "job_postings":
+      case "openings":
       case "candidates":
+      case "onboarding":
+      case "offboarding":
+      case "performance":
         return <UserCheck size={18} />;
       case "attendance":
       case "team_attendance":
       case "my_attendance":
         return <FileCheck size={18} />;
+      case "shifts":
+        return <Calendar size={18} />;
+      case "leave":
       case "leaves":
       case "team_leaves":
       case "my_leaves":
+      case "dept-leave":
         return <Briefcase size={18} />;
       case "assets":
       case "it_inventory":
+      case "inventory":
+      case "allocations":
+      case "dept-assets":
         return <Laptop size={18} />;
+      case "maintenance":
+        return <Wrench size={18} />;
       case "documents":
       case "my_documents":
         return <FileText size={18} />;
+      case "announcements":
+        return <Bell size={18} />;
+      case "import_export":
+        return <FolderDown size={18} />;
       case "audit":
       case "audit_logs":
       case "audit_reports":
+      case "logs":
+      case "employee-changes":
         return <History size={18} />;
       default:
         return <Home size={18} />;
