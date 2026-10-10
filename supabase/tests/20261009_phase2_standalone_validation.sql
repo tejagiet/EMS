@@ -96,14 +96,29 @@ BEGIN
   -- ---------------------------------------------------------------------------
   -- 5. Test Employee Code Isolation (Same Org vs Cross Org)
   -- ---------------------------------------------------------------------------
+  -- Ensure test parent organizations exist (self-bootstrapping if seed not yet applied)
+  INSERT INTO public.organizations (id, name, slug, code)
+  VALUES 
+    (v_org1_id, 'GIET Polytechnic College', 'giet-polytechnic', 'GIETP'),
+    (v_org2_id, 'Apex Solutions Pvt Ltd', 'apex-solutions', 'APEXS')
+  ON CONFLICT (id) DO NOTHING
+  ON CONFLICT (code) DO NOTHING;
+
+  -- Ensure test branch exists for Org 1 (for cross-boundary test)
+  INSERT INTO public.branches (id, organization_id, name, code)
+  VALUES 
+    ('00000002-0000-0000-0000-000000000001', v_org1_id, 'GIET Main Campus', 'MAIN')
+  ON CONFLICT (id) DO NOTHING
+  ON CONFLICT (organization_id, code) DO NOTHING;
+
   -- Clean up any previous test artifacts
-  DELETE FROM public.employees WHERE employee_code = 'TEST-CODE-999';
+  DELETE FROM public.employees WHERE employee_code = 'TEST-CODE-VALIDATE';
 
   -- Insert employee in Org 1
   INSERT INTO public.employees (
     organization_id, employee_code, employment_type, date_of_joining
   ) VALUES (
-    v_org1_id, 'TEST-CODE-999', 'full_time', CURRENT_DATE
+    v_org1_id, 'TEST-CODE-VALIDATE', 'full_time', CURRENT_DATE
   ) RETURNING id INTO v_test_emp_id;
 
   -- Attempt duplicate employee_code in SAME org (MUST FAIL with unique_violation)
@@ -112,7 +127,7 @@ BEGIN
     INSERT INTO public.employees (
       organization_id, employee_code, employment_type, date_of_joining
     ) VALUES (
-      v_org1_id, 'TEST-CODE-999', 'full_time', CURRENT_DATE
+      v_org1_id, 'TEST-CODE-VALIDATE', 'full_time', CURRENT_DATE
     );
   EXCEPTION
     WHEN unique_violation THEN
@@ -133,7 +148,7 @@ BEGIN
     INSERT INTO public.employees (
       organization_id, employee_code, employment_type, date_of_joining
     ) VALUES (
-      v_org2_id, 'TEST-CODE-999', 'full_time', CURRENT_DATE
+      v_org2_id, 'TEST-CODE-VALIDATE', 'full_time', CURRENT_DATE
     );
   EXCEPTION
     WHEN OTHERS THEN
@@ -149,7 +164,7 @@ BEGIN
   END IF;
 
   -- Clean up test records
-  DELETE FROM public.employees WHERE employee_code = 'TEST-CODE-999';
+  DELETE FROM public.employees WHERE employee_code = 'TEST-CODE-VALIDATE';
 
   -- ---------------------------------------------------------------------------
   -- 6. Test Organization Boundary Trigger (Cross-Tenant Branch Assignment)
