@@ -1,4 +1,5 @@
 import { DonutChart } from "@/components/charts/DonutChart";
+import { Badge } from "@/components/ui/Badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { verifyPortalAccess } from "@/lib/auth/session";

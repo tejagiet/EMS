@@ -7,6 +7,7 @@ import { LeaveRequestsQueueClient } from "@/components/leave/LeaveRequestsQueueC
 import { CorrectionsQueueClient } from "@/components/attendance/CorrectionsQueueClient";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { MetricCard } from "@/components/ui/MetricCard";
+import { Badge } from "@/components/ui/Badge";
 import { Users, CheckCircle2, Clock, Calendar, AlertTriangle } from "lucide-react";
 import { ManagerTeamTable } from "./ManagerTeamTable";
 
