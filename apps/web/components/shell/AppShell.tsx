@@ -188,7 +188,17 @@ export function AppShell({ context, children }: AppShellProps) {
             {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
           </button>
 
-          <Link href="/portal" style={{ textDecoration: "none", color: "inherit" }}>
+          <Link href="/portal" style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
+            <img
+              src="/logo.jpg"
+              alt="EMS Logo"
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                objectFit: "cover",
+              }}
+            />
             <h2>EMS Portal</h2>
           </Link>
 
@@ -201,7 +211,10 @@ export function AppShell({ context, children }: AppShellProps) {
         </div>
 
         {/* Header Right Actions */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div
+          className="shell-header-actions"
+          style={{ display: "flex", alignItems: "center", gap: 12 }}
+        >
           {/* Organization Switcher (Only if user has multiple authorized memberships) */}
           {context.memberships.length > 1 ? (
             <form
@@ -494,6 +507,17 @@ export function AppShell({ context, children }: AppShellProps) {
             </div>
           )}
         </aside>
+
+        {mobileMenuOpen && (
+          <button
+            type="button"
+            className="shell-mobile-backdrop"
+            onClick={() => {
+              setMobileMenuOpen(false);
+            }}
+            aria-label="Close navigation menu"
+          />
+        )}
 
         {/* Main Content Area */}
         <main className="shell-content">
