@@ -1,10 +1,9 @@
-import { getRolePermissions, PORTAL_ROLES } from "@ems/config";
+import { PORTAL_ROUTES } from "@ems/config";
 import type {
   AuthenticatedUserContext,
   EmployeeProfileLink,
   Organization,
   OrganizationMembership,
-  PermissionCode,
   PortalRole,
   UserProfile,
 } from "@ems/types";
@@ -12,6 +11,28 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient } from "../supabase/server";
+import {
+  isPortalAccessAllowed,
+  isScopedContextReady,
+  resolveScopedAccess,
+  type ActiveOrganizationContext,
+  type PortalAccessOptions,
+  type RoleAssignmentAccessInput,
+} from "./access";
+
+export {
+  isPortalAccessAllowed,
+  isScopedContextReady,
+  isValidRoleAssignment,
+  resolveScopedAccess,
+} from "./access";
+export type {
+  ActiveOrganizationContext,
+  PortalAccessOptions,
+  RoleAssignmentAccessInput,
+  ScopedAccessResolution,
+  ScopedAccessResolutionInput,
+} from "./access";
 
 const ACTIVE_ORG_COOKIE = "ems_active_org_id";
 const ACTIVE_ROLE_COOKIE = "ems_active_role";
@@ -36,6 +57,7 @@ interface DbRole {
   code: string;
   name: string;
   is_system: boolean;
+  is_active: boolean;
 }
 
 interface DbUserRole {
@@ -43,7 +65,8 @@ interface DbUserRole {
   organization_id: string;
   role_id: string;
   is_active: boolean;
-  roles: DbRole | null;
+  expires_at: string | null;
+  roles: DbRole | DbRole[] | null;
 }
 
 interface DbOrganization {
@@ -95,10 +118,16 @@ export const getCurrentUserContext = cache(async function getCurrentUserContext(
     return null;
   }
 
-  // 1. Fetch Profile
-  const profileResponse = await supabase.from("profiles").select("*").eq("id", user.id).single();
+  // 1. Fetch Profile. A missing profile is kept as a read-only, no-access
+  // context instead of being treated as a new employee.
+  const profileResponse = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
 
   const profileData = profileResponse.data as DbProfile | null;
+  const hasProfile = profileData !== null;
 
   const defaultName = (user.email ? user.email.split("@")[0] : null) ?? "User";
   const userMetaName = (user.user_metadata as { full_name?: string } | null)?.full_name;
@@ -135,56 +164,68 @@ export const getCurrentUserContext = cache(async function getCurrentUserContext(
         updatedAt: new Date().toISOString(),
       };
 
-  // 2. Fetch User Role Assignments
+  // 2. Fetch User Role Assignments. Expiry and role activity are checked in
+  // pure policy code below as well as by the query's is_active filter.
   const userRolesResponse = await supabase
     .from("user_roles")
     .select(
       `
       id,
-      organization_id,
-      role_id,
-      is_active,
-      roles (
-        code,
-        name,
-        is_system
-      )
-    `,
+       organization_id,
+       role_id,
+       is_active,
+       expires_at,
+       roles (
+         code,
+         name,
+         is_system,
+         is_active
+       )
+     `,
     )
     .eq("profile_id", user.id)
     .eq("is_active", true);
 
   const userRoleRows = (userRolesResponse.data as unknown as DbUserRole[] | null) ?? [];
 
-  const availableRoles: PortalRole[] = [];
-  const orgMap = new Map<string, PortalRole[]>();
+  const roleAssignments: RoleAssignmentAccessInput[] = [];
+  const getRelatedRole = (roles: DbRole | DbRole[] | null): DbRole | null =>
+    Array.isArray(roles) ? (roles[0] ?? null) : roles;
 
   for (const row of userRoleRows) {
-    const code = row.roles?.code as PortalRole | undefined;
-    if (code && PORTAL_ROLES.includes(code)) {
-      if (!availableRoles.includes(code)) {
-        availableRoles.push(code);
-      }
-      const existing = orgMap.get(row.organization_id) ?? [];
-      if (!existing.includes(code)) {
-        existing.push(code);
-      }
-      orgMap.set(row.organization_id, existing);
-    }
+    const role = getRelatedRole(row.roles);
+    roleAssignments.push({
+      organizationId: row.organization_id,
+      roleCode: role?.code ?? null,
+      isActive: row.is_active === true,
+      roleIsActive: role?.is_active === true,
+      expiresAt: row.expires_at,
+    });
   }
 
-  // Fallback default role if no roles assigned yet
-  if (availableRoles.length === 0) {
-    availableRoles.push("employee");
-  }
+  // A role row without a profile row is not a usable membership, even if a
+  // permissive query/RLS configuration happens to return it.
+  const effectiveAssignments = hasProfile ? roleAssignments : [];
 
-  // 3. Resolve active organization ID from cookies or profile
+  // 3. Resolve the selected organization. The resolver only accepts an org
+  // that has a valid role assignment; profile.organization_id is merely a
+  // preference and never creates access by itself.
   const cookieStore = await cookies();
-  const requestedOrgId = cookieStore.get(ACTIVE_ORG_COOKIE)?.value;
-  const activeOrgId =
-    requestedOrgId && orgMap.has(requestedOrgId)
-      ? requestedOrgId
-      : (profile.organizationId ?? orgMap.keys().next().value ?? null);
+  const requestedOrgId = cookieStore.get(ACTIVE_ORG_COOKIE)?.value ?? null;
+  const requestedRole = cookieStore.get(ACTIVE_ROLE_COOKIE)?.value ?? null;
+  const preliminaryAccess = resolveScopedAccess({
+    assignments: effectiveAssignments,
+    requestedOrganizationId: requestedOrgId,
+    profileOrganizationId: profile.organizationId,
+    requestedRole,
+    hasProfile,
+    profileIsActive: profile.isActive,
+    // Organization status is applied after the selected organization is
+    // loaded. These preliminary values only resolve its id.
+    hasOrganization: false,
+    organizationIsActive: false,
+  });
+  const activeOrgId = preliminaryAccess.activeOrganizationId;
 
   // 4. Fetch Organization Details
   let activeOrganization: Organization | null = null;
@@ -193,7 +234,7 @@ export const getCurrentUserContext = cache(async function getCurrentUserContext(
       .from("organizations")
       .select("*")
       .eq("id", activeOrgId)
-      .single();
+      .maybeSingle();
 
     const orgData = orgResponse.data as DbOrganization | null;
     if (orgData) {
@@ -215,7 +256,31 @@ export const getCurrentUserContext = cache(async function getCurrentUserContext(
     }
   }
 
-  // Build Membership Array
+  const orgMap = new Map<string, PortalRole[]>();
+  for (const assignment of effectiveAssignments) {
+    if (!assignment.organizationId) continue;
+    const role = assignment.roleCode as PortalRole | null;
+    if (!role) continue;
+    const existing = orgMap.get(assignment.organizationId) ?? [];
+    // Only assignments accepted by the same resolver may become memberships.
+    const resolved = resolveScopedAccess({
+      assignments: [assignment],
+      requestedOrganizationId: assignment.organizationId,
+      profileOrganizationId: null,
+      requestedRole: null,
+      hasProfile,
+      profileIsActive: profile.isActive,
+      hasOrganization: true,
+      organizationIsActive: true,
+    });
+    if (!resolved.availableRoles.includes(role)) continue;
+    if (!existing.includes(role)) existing.push(role);
+    orgMap.set(assignment.organizationId, existing);
+  }
+
+  // Build memberships from valid, unexpired role assignments only. The
+  // selected organization is the only one whose database details are loaded
+  // here; other names remain intentionally non-authoritative placeholders.
   const memberships: OrganizationMembership[] = [];
   for (const [orgId, roles] of orgMap.entries()) {
     memberships.push({
@@ -231,43 +296,52 @@ export const getCurrentUserContext = cache(async function getCurrentUserContext(
     });
   }
 
-  // 5. Resolve active portal role
-  const requestedRole = cookieStore.get(ACTIVE_ROLE_COOKIE)?.value as PortalRole | undefined;
-  const activeRole: PortalRole =
-    requestedRole && availableRoles.includes(requestedRole)
-      ? requestedRole
-      : (availableRoles[0] ?? "employee");
+  // 5. Resolve role and permissions again with the actual organization state.
+  // This is the only permission-bearing resolution used in the context.
+  const scopedAccess = resolveScopedAccess({
+    assignments: effectiveAssignments,
+    requestedOrganizationId: requestedOrgId,
+    profileOrganizationId: profile.organizationId,
+    requestedRole,
+    hasProfile,
+    profileIsActive: profile.isActive,
+    hasOrganization: activeOrganization !== null,
+    organizationIsActive: activeOrganization?.isActive === true,
+  });
 
-  // 6. Resolve Permissions (derived from least-privilege matrix)
-  const rolePerms = getRolePermissions(activeRole);
-  const permissions: PermissionCode[] = [...rolePerms];
+  const availableRoles = scopedAccess.availableRoles;
+  const activeRole = scopedAccess.activeRole;
+  const permissions = scopedAccess.permissions;
 
-  // 7. Fetch Linked Employee record
+  // 6. Fetch Linked Employee record only inside the selected organization.
   let linkedEmployee: EmployeeProfileLink | null = null;
-  const empResponse = await supabase
-    .from("employees")
-    .select("*")
-    .eq("profile_id", user.id)
-    .maybeSingle();
+  if (activeOrganization) {
+    const empResponse = await supabase
+      .from("employees")
+      .select("*")
+      .eq("profile_id", user.id)
+      .eq("organization_id", activeOrganization.id)
+      .maybeSingle();
 
-  const empData = empResponse.data as DbEmployee | null;
-  if (empData) {
-    linkedEmployee = {
-      id: empData.id,
-      organizationId: empData.organization_id,
-      profileId: empData.profile_id,
-      branchId: empData.branch_id,
-      departmentId: empData.department_id,
-      designationId: empData.designation_id,
-      reportingManagerId: empData.reporting_manager_id,
-      employeeCode: empData.employee_code,
-      employmentType: empData.employment_type,
-      employmentStatus: empData.employment_status,
-      dateOfJoining: empData.date_of_joining,
-      workEmail: empData.work_email,
-      workPhone: empData.work_phone,
-      isActive: empData.is_active,
-    };
+    const empData = empResponse.data as DbEmployee | null;
+    if (empData && empData.organization_id === activeOrganization.id) {
+      linkedEmployee = {
+        id: empData.id,
+        organizationId: empData.organization_id,
+        profileId: empData.profile_id,
+        branchId: empData.branch_id,
+        departmentId: empData.department_id,
+        designationId: empData.designation_id,
+        reportingManagerId: empData.reporting_manager_id,
+        employeeCode: empData.employee_code,
+        employmentType: empData.employment_type,
+        employmentStatus: empData.employment_status,
+        dateOfJoining: empData.date_of_joining,
+        workEmail: empData.work_email,
+        workPhone: empData.work_phone,
+        isActive: empData.is_active,
+      };
+    }
   }
 
   return {
@@ -284,31 +358,63 @@ export const getCurrentUserContext = cache(async function getCurrentUserContext(
   };
 });
 
-/**
- * Server-side gatekeeper function for portal pages.
- * Rejects unauthenticated users, inactive accounts, and unauthorized roles.
- */
-export async function verifyPortalAccess(
-  requiredRole: PortalRole,
-): Promise<AuthenticatedUserContext> {
+async function requireActiveSessionContextFor(
+  loginDestination?: string,
+): Promise<ActiveOrganizationContext> {
   const context = await getCurrentUserContext();
 
   if (!context) {
-    redirect(`/login?redirectTo=/portal/${requiredRole.replace(/_/g, "-")}`);
+    if (loginDestination) {
+      redirect(`/login?redirectTo=${loginDestination}`);
+    }
+    redirect("/login");
   }
 
   if (!context.isAccountActive) {
     redirect("/unauthorized?reason=inactive_account");
   }
 
-  // Super admin can access all portals; others must hold the role or switch to it
-  const isAuthorized =
-    context.activeRole === "super_admin" ||
-    context.activeRole === requiredRole ||
-    context.availableRoles.includes(requiredRole);
+  // Check this before the missing-role branch so a disabled organization gets
+  // its specific denial rather than being reported as pending assignment.
+  if (context.activeOrganization && !context.activeOrganization.isActive) {
+    redirect("/unauthorized?reason=inactive_organization");
+  }
 
-  if (!isAuthorized) {
-    redirect(`/unauthorized?reason=insufficient_role&target=${requiredRole}`);
+  if (!isScopedContextReady(context)) {
+    redirect("/access-pending");
+  }
+
+  return context as ActiveOrganizationContext;
+}
+
+/**
+ * Common gate for portal pages and portal actions that need a valid active
+ * organization and scoped role. It keeps pending accounts out of the login
+ * redirect loop and preserves the context's non-null organization type for
+ * callers after the gate returns.
+ */
+export async function requireActiveSessionContext(): Promise<ActiveOrganizationContext> {
+  return requireActiveSessionContextFor();
+}
+
+/**
+ * Server-side gatekeeper function for portal pages and shared portal actions.
+ * Role checks are evaluated against the active role in the selected
+ * organization only; an available role in another organization is never an
+ * authorization substitute.
+ */
+export async function verifyPortalAccess(
+  requiredRole: PortalRole,
+  options: PortalAccessOptions = {},
+): Promise<ActiveOrganizationContext> {
+  const context = await requireActiveSessionContextFor(PORTAL_ROUTES[requiredRole]);
+
+  if (!isPortalAccessAllowed(context, requiredRole, options)) {
+    const reason =
+      options.permission !== undefined && !context.permissions.includes(options.permission)
+        ? "insufficient_permission"
+        : "insufficient_role";
+    redirect(`/unauthorized?reason=${reason}&target=${requiredRole}`);
   }
 
   return context;
