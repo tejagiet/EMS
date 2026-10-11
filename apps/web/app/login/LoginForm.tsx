@@ -126,37 +126,6 @@ export function LoginForm({ initialMessage, initialError, redirectTo }: LoginFor
         {isPending ? "Authenticating..." : "Sign In to EMS"}
       </button>
 
-      {/* Development Quick Credentials */}
-      <div
-        style={{
-          marginTop: 24,
-          paddingTop: 16,
-          borderTop: "1px solid var(--border)",
-          fontSize: "0.8rem",
-          color: "var(--text-muted)",
-        }}
-      >
-        <strong style={{ display: "block", marginBottom: 4, color: "var(--text-main)" }}>
-          Demo Test Accounts (Dev Password: DevPassword123!)
-        </strong>
-        <ul style={{ paddingLeft: 16, lineHeight: 1.6 }}>
-          <li>
-            GIET Super / Org Admin: <code>admin@giet-polytechnic.edu</code>
-          </li>
-          <li>
-            GIET HR Manager: <code>hr@giet-polytechnic.edu</code>
-          </li>
-          <li>
-            GIET Manager: <code>manager@giet-polytechnic.edu</code>
-          </li>
-          <li>
-            GIET Employee: <code>emp1@giet-polytechnic.edu</code>
-          </li>
-          <li>
-            Apex Org Admin: <code>admin@apex-solutions.dev</code>
-          </li>
-        </ul>
-      </div>
     </form>
   );
 }
