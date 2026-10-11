@@ -41,16 +41,21 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const url = request.nextUrl.clone();
   const isAuthRoute =
     url.pathname.startsWith("/login") ||
     url.pathname.startsWith("/forgot-password") ||
     url.pathname.startsWith("/auth/reset-password");
   const isProtectedRoute = url.pathname.startsWith("/portal");
+
+  // Fast-path: Skip external Supabase network verification on completely public pages
+  if (!isAuthRoute && !isProtectedRoute) {
+    return response;
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // If user is unauthenticated and attempting to access protected portal
   if (!user && isProtectedRoute) {

@@ -10,6 +10,7 @@ import type {
 } from "@ems/types";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createClient } from "../supabase/server";
 
 const ACTIVE_ORG_COOKIE = "ems_active_org_id";
@@ -81,8 +82,9 @@ interface DbEmployee {
 /**
  * Loads the complete authenticated context on the server side.
  * Validates the session, profile, organization memberships, and permissions.
+ * Memoized via React cache() to prevent redundant DB roundtrips in layout & child pages.
  */
-export async function getCurrentUserContext(): Promise<AuthenticatedUserContext | null> {
+export const getCurrentUserContext = cache(async function getCurrentUserContext(): Promise<AuthenticatedUserContext | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -280,7 +282,7 @@ export async function getCurrentUserContext(): Promise<AuthenticatedUserContext 
     linkedEmployee,
     isAccountActive: profile.isActive,
   };
-}
+});
 
 /**
  * Server-side gatekeeper function for portal pages.
