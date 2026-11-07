@@ -1,5 +1,11 @@
 import { verifyPortalAccess } from "@/lib/auth/session";
-import { getTodayAttendanceStatus, getEmployeeAttendanceHistory } from "@/lib/data/attendance";
+import {
+  getTodayAttendanceStatus,
+  getEmployeeAttendanceHistory,
+  getAssignableColleagues,
+  getAssignedSubstituteDuties,
+  getMyDelegatedDuties,
+} from "@/lib/data/attendance";
 import { getEmployeeLeaveBalances, getEmployeeLeaveRequests } from "@/lib/data/leave";
 import { EmployeeSelfClient } from "@/components/attendance/EmployeeSelfClient";
 import { MetricCard } from "@/components/ui/MetricCard";
@@ -14,13 +20,24 @@ export default async function EmployeeAttendancePage() {
   const orgId = context.activeOrganization?.id ?? "";
   const linkedEmployee = context.linkedEmployee;
 
-  const [clockStatus, attendanceHistory, balances, leaveRequests] = await Promise.all([
+  const [
+    clockStatus,
+    attendanceHistory,
+    balances,
+    leaveRequests,
+    colleagues,
+    assignedDuties,
+    myDelegatedDuties,
+  ] = await Promise.all([
     linkedEmployee
       ? getTodayAttendanceStatus(orgId, linkedEmployee.id)
       : { hasOpenSession: false, activeRecord: null, assignedShift: null },
     linkedEmployee ? getEmployeeAttendanceHistory(orgId, linkedEmployee.id, 30) : [],
     linkedEmployee ? getEmployeeLeaveBalances(orgId, linkedEmployee.id) : [],
     linkedEmployee ? getEmployeeLeaveRequests(orgId, linkedEmployee.id) : [],
+    getAssignableColleagues(orgId, linkedEmployee?.id),
+    linkedEmployee ? getAssignedSubstituteDuties(orgId, linkedEmployee.id) : [],
+    linkedEmployee ? getMyDelegatedDuties(orgId, linkedEmployee.id) : [],
   ]);
 
   const presentDays = attendanceHistory.filter((r) => r.status === "present" || r.isLate).length;
@@ -70,6 +87,9 @@ export default async function EmployeeAttendancePage() {
         balances={balances}
         attendanceHistory={attendanceHistory}
         leaveRequests={leaveRequests}
+        colleagues={colleagues}
+        assignedDuties={assignedDuties}
+        myDelegatedDuties={myDelegatedDuties}
       />
     </div>
   );

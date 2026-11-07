@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { clockInAction, clockOutAction } from "@/lib/data/attendance-actions";
 import type { ClockStatusResult } from "@/lib/data/attendance";
 import { Clock, LogIn, LogOut, CheckCircle2, AlertCircle } from "lucide-react";
+import { useRealtime } from "@/src/context/RealtimeContext";
 
 interface ClockInOutWidgetProps {
   initialStatus: ClockStatusResult;
@@ -19,12 +20,17 @@ export function ClockInOutWidget({
   employeeName,
   onOpenCorrectionModal,
 }: ClockInOutWidgetProps) {
+  const { broadcastChange, isConnected } = useRealtime();
   const [status, setStatus] = useState<ClockStatusResult>(initialStatus);
   const [notes, setNotes] = useState("");
   const [currentTime, setCurrentTime] = useState<string>("");
   const [elapsedMinutes, setElapsedMinutes] = useState(0);
   const [isPending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  useEffect(() => {
+    setStatus(initialStatus);
+  }, [initialStatus]);
 
   // Live digital clock
   useEffect(() => {
@@ -84,6 +90,11 @@ export function ClockInOutWidget({
           },
         }));
         setNotes("");
+        broadcastChange({
+          table: "attendance_records",
+          eventType: "INSERT",
+          message: `${employeeName} clocked in successfully (${res.data?.isLate ? "Late" : "On time"}).`,
+        });
       } else {
         setFeedback({ type: "error", message: res.error ?? "Failed to clock in." });
       }
@@ -115,6 +126,11 @@ export function ClockInOutWidget({
             : null,
         }));
         setNotes("");
+        broadcastChange({
+          table: "attendance_records",
+          eventType: "UPDATE",
+          message: `${employeeName} clocked out (${res.data?.durationMinutes ?? 0} mins).`,
+        });
       } else {
         setFeedback({ type: "error", message: res.error ?? "Failed to clock out." });
       }

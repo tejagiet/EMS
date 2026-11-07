@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/Button";
@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { exportAttendanceCsvAction } from "@/lib/data/attendance-actions";
 import type { AttendanceRecord } from "@ems/types";
-import { Download, AlertTriangle } from "lucide-react";
+import { Download, AlertTriangle, RefreshCw } from "lucide-react";
+import { useRealtime } from "@/src/context/RealtimeContext";
 
 interface AttendanceRosterClientProps {
   initialRoster: AttendanceRecord[];
@@ -23,6 +24,20 @@ export function AttendanceRosterClient({
   const [date, setDate] = useState(currentDate);
   const [onlyExceptions, setOnlyExceptions] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
+  const [roster, setRoster] = useState<AttendanceRecord[]>(initialRoster);
+  const [lastLiveUpdate, setLastLiveUpdate] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRoster(initialRoster);
+  }, [initialRoster]);
+
+  const { isConnected } = useRealtime({
+    table: "attendance_records",
+    onUpdate: () => {
+      setLastLiveUpdate(new Date().toLocaleTimeString());
+      router.refresh();
+    },
+  });
 
   const handleDateChange = (newDate: string) => {
     setDate(newDate);
@@ -48,7 +63,7 @@ export function AttendanceRosterClient({
     }
   };
 
-  const filteredRoster = initialRoster.filter((r) => {
+  const filteredRoster = roster.filter((r) => {
     if (onlyExceptions) {
       return r.isLate || r.isEarlyDeparture || r.status === "absent" || (r.clockIn && !r.clockOut);
     }
@@ -141,6 +156,25 @@ export function AttendanceRosterClient({
             <AlertTriangle size={14} style={{ marginRight: 6 }} />
             {onlyExceptions ? "Showing Exceptions Only" : "Show Exceptions Only"}
           </Button>
+
+          {isConnected && (
+            <span
+              style={{
+                fontSize: "0.75rem",
+                color: "#059669",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                background: "rgba(16, 185, 129, 0.08)",
+                padding: "3px 8px",
+                borderRadius: 6,
+                border: "1px solid rgba(16, 185, 129, 0.2)",
+              }}
+            >
+              <span className="realtime-pulse-dot" />
+              Live Sync {lastLiveUpdate ? `(Updated ${lastLiveUpdate})` : "Active"}
+            </span>
+          )}
         </div>
 
         <Button size="sm" variant="secondary" onClick={handleExportCsv} isLoading={exportLoading}>

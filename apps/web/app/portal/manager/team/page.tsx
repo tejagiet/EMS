@@ -10,7 +10,9 @@ export const metadata = {
 };
 
 export default async function ManagerTeamPage() {
-  const context = await verifyPortalAccess("manager");
+  const context = await verifyPortalAccess("manager", {
+    permission: "employee.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
   const managerEmployeeId = context.linkedEmployee?.id ?? null;
 

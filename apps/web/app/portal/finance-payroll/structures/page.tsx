@@ -11,7 +11,9 @@ export const metadata = {
 };
 
 export default async function FinanceSalaryStructuresPage() {
-  const context = await verifyPortalAccess("finance_payroll_manager");
+  const context = await verifyPortalAccess("finance_payroll_manager", {
+    permission: "payroll.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const [structures, empResult] = await Promise.all([

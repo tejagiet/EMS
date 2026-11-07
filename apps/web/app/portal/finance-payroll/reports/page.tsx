@@ -10,7 +10,9 @@ export const metadata = {
 };
 
 export default async function FinancePayrollReportsPage() {
-  const context = await verifyPortalAccess("finance_payroll_manager");
+  const context = await verifyPortalAccess("finance_payroll_manager", {
+    permission: "report.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const runs = await getPayrollRuns(orgId);
@@ -82,9 +84,11 @@ export default async function FinancePayrollReportsPage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <Badge variant="success">Ready</Badge>
-                <button
-                  type="button"
-                  style={{
+                 <button
+                   type="button"
+                   disabled
+                   title="EPF ECR export is not available yet."
+                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
@@ -92,12 +96,14 @@ export default async function FinancePayrollReportsPage() {
                     borderRadius: 6,
                     border: "1px solid var(--border)",
                     background: "var(--background)",
-                    cursor: "pointer",
+                     cursor: "not-allowed",
+                     opacity: 0.6,
                     fontSize: "0.8rem",
                   }}
                 >
-                  <Download size={14} /> Download ECR
-                </button>
+                   <Download size={14} /> Download ECR
+                 </button>
+                 <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Export unavailable</span>
               </div>
             </div>
 
@@ -121,9 +127,11 @@ export default async function FinancePayrollReportsPage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <Badge variant="success">Ready</Badge>
-                <button
-                  type="button"
-                  style={{
+                 <button
+                   type="button"
+                   disabled
+                   title="ESI CSV export is not available yet."
+                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
@@ -131,12 +139,14 @@ export default async function FinancePayrollReportsPage() {
                     borderRadius: 6,
                     border: "1px solid var(--border)",
                     background: "var(--background)",
-                    cursor: "pointer",
+                     cursor: "not-allowed",
+                     opacity: 0.6,
                     fontSize: "0.8rem",
                   }}
                 >
-                  <Download size={14} /> Export CSV
-                </button>
+                   <Download size={14} /> Export CSV
+                 </button>
+                 <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Export unavailable</span>
               </div>
             </div>
 
@@ -160,9 +170,11 @@ export default async function FinancePayrollReportsPage() {
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                 <Badge variant="secondary">Quarterly (Q3)</Badge>
-                <button
-                  type="button"
-                  style={{
+                 <button
+                   type="button"
+                   disabled
+                   title="24Q export is not available yet."
+                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: 6,
@@ -170,12 +182,14 @@ export default async function FinancePayrollReportsPage() {
                     borderRadius: 6,
                     border: "1px solid var(--border)",
                     background: "var(--background)",
-                    cursor: "pointer",
+                     cursor: "not-allowed",
+                     opacity: 0.6,
                     fontSize: "0.8rem",
                   }}
                 >
-                  <Download size={14} /> Export 24Q Sheet
-                </button>
+                   <Download size={14} /> Export 24Q Sheet
+                 </button>
+                 <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Export unavailable</span>
               </div>
             </div>
           </div>

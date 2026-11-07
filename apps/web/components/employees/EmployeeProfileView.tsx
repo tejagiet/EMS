@@ -7,16 +7,50 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { SchemaDependencyNotice } from "@/components/ui/SchemaDependencyNotice";
 import type { EmployeeProfileDetail } from "@/lib/data/employees";
-import { Briefcase, MapPin, Edit, ArrowLeft, Building } from "lucide-react";
+import {
+  Briefcase,
+  MapPin,
+  Edit,
+  ArrowLeft,
+  Building,
+  Clock,
+  Calendar,
+  Lock,
+  Key,
+  Eye,
+  EyeOff,
+  Copy,
+  Check,
+  ShieldCheck,
+} from "lucide-react";
+import {
+  extractEmployeePassword,
+  setEmployeePasswordAction,
+} from "@/lib/data/credentials";
 
 interface EmployeeProfileViewProps {
   employee: EmployeeProfileDetail;
   canWrite: boolean;
   isAuditor: boolean;
+  attendanceHistory?: any[];
+  leaveBalances?: any[];
 }
 
-export function EmployeeProfileView({ employee, canWrite, isAuditor }: EmployeeProfileViewProps) {
+export function EmployeeProfileView({
+  employee,
+  canWrite,
+  isAuditor,
+  attendanceHistory = [],
+  leaveBalances = [],
+}: EmployeeProfileViewProps) {
   const [activeTab, setActiveTab] = useState("overview");
+  const initialPassword = extractEmployeePassword(employee.notes) || "Welcome@EMS2026";
+  const [currentPassword, setCurrentPassword] = useState<string>(initialPassword);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const [newPasswordInput, setNewPasswordInput] = useState("");
+  const [credMessage, setCredMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const initials = `${employee.firstName?.[0] ?? ""}${employee.lastName?.[0] ?? ""}`.toUpperCase() || "EM";
 
@@ -45,8 +79,9 @@ export function EmployeeProfileView({ employee, canWrite, isAuditor }: EmployeeP
     { id: "employment", label: "Employment Details" },
     { id: "structure", label: "Hierarchy & Direct Reports" },
     { id: "history", label: "Audit & Employment History" },
-    { id: "attendance", label: "Attendance (Phase 5)" },
-    { id: "leave", label: "Leave Balance (Phase 5)" },
+    { id: "attendance", label: "Attendance Logs" },
+    { id: "leave", label: "Leave Balances" },
+    { id: "security", label: "Portal Access & Password" },
   ];
 
   return (
@@ -432,24 +467,277 @@ export function EmployeeProfileView({ employee, canWrite, isAuditor }: EmployeeP
         </Card>
       )}
 
-      {/* Tab 6: Attendance Summary (Phase 5) */}
+      {/* Tab 6: Attendance Logs */}
       {activeTab === "attendance" && (
-        <SchemaDependencyNotice
-          moduleName="Attendance Clock-In & Shifts"
-          requiredPhase={5}
-          description="Detailed biometric clock logs, daily work hours, and punch-in timestamps will appear here once the attendance schema is deployed."
-          plannedSchema={["attendance_records", "shift_allocations"]}
-        />
+        <Card>
+          <CardHeader>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <CardTitle>Attendance & Biometric Logs</CardTitle>
+                <CardDescription>Recent clock-in events, shift allocations, and workday duration.</CardDescription>
+              </div>
+              <Badge label={`${attendanceHistory.length} Logged Record${attendanceHistory.length === 1 ? "" : "s"}`} variant="neutral" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {attendanceHistory.length === 0 ? (
+              <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--text-muted)" }}>
+                <Clock size={36} style={{ margin: "0 auto 12px", opacity: 0.5 }} />
+                <p style={{ margin: 0, fontWeight: 500 }}>No attendance records logged yet.</p>
+                <p style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
+                  Clock-in events, shift assignments, and daily hours will automatically record here.
+                </p>
+              </div>
+            ) : (
+              <div className="table-container" style={{ overflowX: "auto" }}>
+                <table className="table" style={{ width: "100%", fontSize: "0.875rem" }}>
+                  <thead>
+                    <tr>
+                      <th>Work Date</th>
+                      <th>Shift</th>
+                      <th>Clock In</th>
+                      <th>Clock Out</th>
+                      <th>Duration</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {attendanceHistory.map((rec: any) => (
+                      <tr key={rec.id}>
+                        <td style={{ fontWeight: 600 }}>{rec.workDate}</td>
+                        <td>{rec.shiftName || "Standard General Shift"}</td>
+                        <td>{rec.clockIn ? new Date(rec.clockIn).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+                        <td>{rec.clockOut ? new Date(rec.clockOut).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "In Progress"}</td>
+                        <td>{rec.durationMinutes ? `${Math.floor(rec.durationMinutes / 60)}h ${rec.durationMinutes % 60}m` : "—"}</td>
+                        <td>
+                          <Badge
+                            label={String(rec.status).toUpperCase()}
+                            variant={rec.status === "present" ? "success" : rec.status === "late" ? "warning" : "neutral"}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       )}
 
-      {/* Tab 7: Leave Balance (Phase 5) */}
+      {/* Tab 7: Leave Balances & Quotas */}
       {activeTab === "leave" && (
-        <SchemaDependencyNotice
-          moduleName="Leave Ledger & Balances"
-          requiredPhase={5}
-          description="Accrued annual leave, medical leave credits, and pending time-off requests will appear here once the leave ledger migration is deployed."
-          plannedSchema={["leave_ledger", "leave_requests", "leave_types"]}
-        />
+        <Card>
+          <CardHeader>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <CardTitle>Leave Quotas & Entitlements</CardTitle>
+                <CardDescription>Accrued annual leave, medical credits, and available balance ledger.</CardDescription>
+              </div>
+              <Badge label="Current Year 2026" variant="neutral" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            {leaveBalances.length === 0 ? (
+              <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--text-muted)" }}>
+                <Calendar size={36} style={{ margin: "0 auto 12px", opacity: 0.5 }} />
+                <p style={{ margin: 0, fontWeight: 500 }}>Standard annual leave quota applies.</p>
+                <p style={{ margin: "4px 0 0", fontSize: "0.85rem" }}>
+                  Institutional entitlement: 12 days Casual Leave, 12 days Paid Leave, 10 days Sick Leave per calendar year.
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+                {leaveBalances.map((lb: any) => (
+                  <div
+                    key={lb.leaveTypeId}
+                    style={{
+                      padding: 16,
+                      borderRadius: "var(--radius-md)",
+                      border: "1px solid var(--border)",
+                      background: "var(--surface)",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <span style={{ fontWeight: 600, fontSize: "0.95rem" }}>{lb.leaveTypeName}</span>
+                      <Badge label={lb.isPaid ? "Paid" : "Unpaid"} variant={lb.isPaid ? "success" : "neutral"} />
+                    </div>
+                    <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--primary)", marginBottom: 4 }}>
+                      {lb.availableDays ?? lb.daysPerYear ?? 12}{" "}
+                      <span style={{ fontSize: "0.85rem", fontWeight: 500, color: "var(--text-muted)" }}>days available</span>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.78rem", color: "var(--text-muted)", marginTop: 8 }}>
+                      <span>Accrued: {lb.accruedDays ?? lb.daysPerYear ?? 12}</span>
+                      <span>Used: {lb.usedDays ?? 0}</span>
+                      <span>Pending: {lb.pendingDays ?? 0}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Tab 8: Portal Access & Credentials (Visible to Admins) */}
+      {activeTab === "security" && (
+        <Card>
+          <CardHeader>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+              <div>
+                <CardTitle style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <ShieldCheck size={20} style={{ color: "var(--primary)" }} /> Portal Access Credentials
+                </CardTitle>
+                <CardDescription>
+                  Institutional staff login credentials and password governance.
+                </CardDescription>
+              </div>
+              <Badge label="Administrator Visible" variant="warning" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div
+                style={{
+                  padding: 16,
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--border)",
+                  backgroundColor: "var(--table-stripe, #f8fafc)",
+                }}
+              >
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 20 }}>
+                  <div>
+                    <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+                      Portal Login Email / Username
+                    </label>
+                    <code style={{ fontSize: "0.95rem", fontWeight: 600, color: "var(--primary)" }}>
+                      {employee.workEmail || "No work email assigned"}
+                    </code>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: "0.8rem", color: "var(--text-muted)", display: "block", marginBottom: 4 }}>
+                      Current Provisioned / Setup Password
+                    </label>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <code
+                        style={{
+                          fontSize: "1rem",
+                          fontWeight: 700,
+                          padding: "6px 12px",
+                          borderRadius: 6,
+                          backgroundColor: "var(--card-bg, #ffffff)",
+                          border: "1px solid var(--border)",
+                          letterSpacing: showPassword ? "normal" : "0.2em",
+                        }}
+                      >
+                        {showPassword ? currentPassword : "••••••••••••"}
+                      </code>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => setShowPassword(!showPassword)}
+                        title={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          navigator.clipboard.writeText(currentPassword);
+                          setCopied(true);
+                          setTimeout(() => setCopied(false), 2000);
+                        }}
+                        title="Copy password to clipboard"
+                      >
+                        {copied ? <Check size={15} style={{ color: "var(--success)" }} /> : <Copy size={15} />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px dashed var(--border)", fontSize: "0.82rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 6 }}>
+                  <Lock size={14} />
+                  <span>
+                    As per institutional security configuration, this password is set up and visible to administrators for employee onboarding and verification.
+                  </span>
+                </div>
+              </div>
+
+              {/* Set / Change Password Form */}
+              <div
+                style={{
+                  padding: 16,
+                  borderRadius: "var(--radius-md)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <h4 style={{ margin: "0 0 6px 0", fontSize: "0.95rem", fontWeight: 600 }}>
+                  Update or Reset Portal Password
+                </h4>
+                <p style={{ margin: "0 0 14px 0", fontSize: "0.82rem", color: "var(--text-muted)" }}>
+                  Assign a new password for this staff member. This immediately updates their login authentication and is saved to the administrative directory.
+                </p>
+
+                {credMessage && (
+                  <div
+                    className={`alert alert-${credMessage.type === "success" ? "success" : "error"}`}
+                    style={{ marginBottom: 14 }}
+                  >
+                    {credMessage.text}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10 }}>
+                  <input
+                    type="text"
+                    value={newPasswordInput}
+                    onChange={(e) => setNewPasswordInput(e.target.value)}
+                    placeholder="Enter new portal password"
+                    className="form-input"
+                    style={{ maxWidth: 300, height: 38 }}
+                  />
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => {
+                      const randomPass = `GIET@${Math.floor(1000 + Math.random() * 9000)}`;
+                      setNewPasswordInput(randomPass);
+                    }}
+                  >
+                    <Key size={14} style={{ marginRight: 4 }} /> Generate Password
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    disabled={isUpdatingPassword || !newPasswordInput.trim()}
+                    onClick={async () => {
+                      setIsUpdatingPassword(true);
+                      setCredMessage(null);
+                      try {
+                        const res = await setEmployeePasswordAction(employee.id, newPasswordInput.trim());
+                        if (res.success && res.password) {
+                          setCurrentPassword(res.password);
+                          setNewPasswordInput("");
+                          setCredMessage({ type: "success", text: "Password updated successfully in authentication and admin directory." });
+                        } else {
+                          setCredMessage({ type: "error", text: res.error || "Failed to update password." });
+                        }
+                      } catch (err: any) {
+                        setCredMessage({ type: "error", text: err.message || "An error occurred." });
+                      } finally {
+                        setIsUpdatingPassword(false);
+                      }
+                    }}
+                  >
+                    {isUpdatingPassword ? "Updating..." : "Save New Password"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -8,9 +8,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Modal } from "@/components/ui/Modal";
-import { manageDepartmentAction } from "@/lib/data/employee-actions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { manageDepartmentAction, deleteDepartmentAction } from "@/lib/data/employee-actions";
 import type { DepartmentDetail } from "@ems/types";
-import { Plus, Edit, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Users } from "lucide-react";
 
 interface DepartmentsClientProps {
   initialDepartments: DepartmentDetail[];
@@ -26,13 +27,16 @@ export function DepartmentsClient({
   canWrite,
 }: DepartmentsClientProps) {
   const router = useRouter();
+  const [departments, setDepartments] = useState<DepartmentDetail[]>(initialDepartments);
   const [isPending, startTransition] = useTransition();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDept, setEditingDept] = useState<DepartmentDetail | null>(null);
+  const [deletingDept, setDeletingDept] = useState<DepartmentDetail | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const filteredDepts = initialDepartments.filter((d) =>
+  const filteredDepts = departments.filter((d) =>
     searchQuery === "" ||
     d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     d.code.toLowerCase().includes(searchQuery.toLowerCase())
@@ -48,6 +52,25 @@ export function DepartmentsClient({
     setEditingDept(dept);
     setError(null);
     setModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingDept) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteDepartmentAction(deletingDept.id);
+      if (!res.success) {
+        setError(res.error ?? "Failed to delete department.");
+      } else {
+        setDepartments((prev) => prev.filter((d) => d.id !== deletingDept.id));
+        setDeletingDept(null);
+        router.refresh();
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete department.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -135,9 +158,19 @@ export function DepartmentsClient({
       align: "right",
       render: (row) =>
         canWrite ? (
-          <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(row)}>
-            <Edit size={14} style={{ marginRight: 4 }} /> Edit
-          </Button>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+            <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(row)}>
+              <Edit size={14} style={{ marginRight: 4 }} /> Edit
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setDeletingDept(row)}
+              style={{ color: "#ef4444" }}
+            >
+              <Trash2 size={14} style={{ marginRight: 4 }} /> Delete
+            </Button>
+          </div>
         ) : null,
     },
   ];
@@ -261,6 +294,20 @@ export function DepartmentsClient({
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={Boolean(deletingDept)}
+        title="Delete Department"
+        description={`Are you sure you want to delete department "${deletingDept?.name}" (${deletingDept?.code})? Staff members and designations under this department will have their department assignment cleared.`}
+        confirmLabel="Delete Department"
+        cancelLabel="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          if (!isDeleting) setDeletingDept(null);
+        }}
+      />
     </div>
   );
 }

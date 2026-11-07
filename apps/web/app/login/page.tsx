@@ -9,12 +9,15 @@ interface LoginPageProps {
   }>;
 }
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
+export default async function LoginPage({ searchParams }: LoginPageProps): Promise<React.JSX.Element> {
   const params = await searchParams;
 
   let initialError: string | undefined = undefined;
   if (params.error === "session_expired") {
     initialError = "Your session has expired. Please sign in again.";
+  } else if (params.error === "access_pending") {
+    initialError =
+      "Your account is awaiting organization and portal access assignment. Please contact an EMS administrator.";
   } else if (params.error === "auth_callback_failed") {
     initialError = "Authentication link was invalid or has expired.";
   } else if (params.error) {

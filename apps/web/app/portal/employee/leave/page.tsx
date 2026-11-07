@@ -1,6 +1,12 @@
 import { verifyPortalAccess } from "@/lib/auth/session";
 import { getEmployeeLeaveBalances, getEmployeeLeaveRequests } from "@/lib/data/leave";
-import { getTodayAttendanceStatus, getEmployeeAttendanceHistory } from "@/lib/data/attendance";
+import {
+  getTodayAttendanceStatus,
+  getEmployeeAttendanceHistory,
+  getAssignableColleagues,
+  getAssignedSubstituteDuties,
+  getMyDelegatedDuties,
+} from "@/lib/data/attendance";
 import { EmployeeSelfClient } from "@/components/attendance/EmployeeSelfClient";
 import { LeaveBalancesGrid } from "@/components/leave/LeaveBalancesGrid";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
@@ -16,13 +22,24 @@ export default async function EmployeeLeavePage() {
   const orgId = context.activeOrganization?.id ?? "";
   const linkedEmployee = context.linkedEmployee;
 
-  const [balances, leaveRequests, clockStatus, attendanceHistory] = await Promise.all([
+  const [
+    balances,
+    leaveRequests,
+    clockStatus,
+    attendanceHistory,
+    colleagues,
+    assignedDuties,
+    myDelegatedDuties,
+  ] = await Promise.all([
     linkedEmployee ? getEmployeeLeaveBalances(orgId, linkedEmployee.id) : [],
     linkedEmployee ? getEmployeeLeaveRequests(orgId, linkedEmployee.id) : [],
     linkedEmployee
       ? getTodayAttendanceStatus(orgId, linkedEmployee.id)
       : { hasOpenSession: false, activeRecord: null, assignedShift: null },
     linkedEmployee ? getEmployeeAttendanceHistory(orgId, linkedEmployee.id, 10) : [],
+    getAssignableColleagues(orgId, linkedEmployee?.id),
+    linkedEmployee ? getAssignedSubstituteDuties(orgId, linkedEmployee.id) : [],
+    linkedEmployee ? getMyDelegatedDuties(orgId, linkedEmployee.id) : [],
   ]);
 
   const totalAvailable = balances.reduce((sum, b) => sum + b.availableDays, 0);
@@ -81,6 +98,9 @@ export default async function EmployeeLeavePage() {
         balances={balances}
         attendanceHistory={attendanceHistory}
         leaveRequests={leaveRequests}
+        colleagues={colleagues}
+        assignedDuties={assignedDuties}
+        myDelegatedDuties={myDelegatedDuties}
       />
     </div>
   );

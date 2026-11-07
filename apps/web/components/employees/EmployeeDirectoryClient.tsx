@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,7 @@ import { Select } from "@/components/ui/Select";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { changeEmployeeStatusAction, exportEmployeesCsvAction } from "@/lib/data/employee-actions";
 import type { Employee, EmploymentStatus } from "@ems/types";
+import { useRealtime } from "@/src/context/RealtimeContext";
 import {
   Filter,
   Plus,
@@ -32,6 +33,7 @@ interface EmployeeDirectoryClientProps {
   branches: Array<{ id: string; name: string }>;
   designations: Array<{ id: string; name: string }>;
   canWrite: boolean;
+  canImport: boolean;
 }
 
 export function EmployeeDirectoryClient({
@@ -44,10 +46,20 @@ export function EmployeeDirectoryClient({
   branches,
   designations,
   canWrite,
+  canImport,
 }: EmployeeDirectoryClientProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
+  const currentPath = pathname ?? "/portal/hr/employees";
   const [isPending, startTransition] = useTransition();
+
+  const { broadcastChange, isConnected } = useRealtime({
+    table: "employees",
+    onUpdate: () => {
+      router.refresh();
+    },
+  });
 
   // Search and filter state
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
@@ -70,7 +82,7 @@ export function EmployeeDirectoryClient({
     });
     params.set("page", "1"); // Reset to page 1 on filter change
     startTransition(() => {
-      router.push(`/portal/hr/employees?${params.toString()}`);
+      router.push(`${currentPath}?${params.toString()}`);
     });
   };
 
@@ -83,7 +95,7 @@ export function EmployeeDirectoryClient({
     setJoiningFrom("");
     setJoiningTo("");
     startTransition(() => {
-      router.push("/portal/hr/employees");
+      router.push(currentPath);
     });
   };
 
@@ -118,6 +130,11 @@ export function EmployeeDirectoryClient({
       targetStatus,
       statusDialogAction === "deactivate" ? "Administrative deactivation" : "Reactivated to active status"
     );
+    await broadcastChange({
+      table: "employees",
+      eventType: "UPDATE",
+      message: `Employee ${statusDialogTarget.name} status updated to ${targetStatus.toUpperCase()}.`,
+    });
     setStatusDialogTarget(null);
     setStatusDialogAction(null);
     router.refresh();
@@ -232,17 +249,23 @@ export function EmployeeDirectoryClient({
       align: "right",
       render: (row) => (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
-          <Link href={`/portal/hr/employees/${row.id}`}>
-            <Button size="sm" variant="ghost" title="View Profile">
-              <Eye size={15} />
-            </Button>
+          <Link
+            href={`/portal/hr/employees/${row.id}`}
+            className="btn btn-ghost btn-sm"
+            title="View Profile"
+            aria-label={`View ${row.fullName}`}
+          >
+            <Eye size={15} />
           </Link>
           {canWrite && (
             <>
-              <Link href={`/portal/hr/employees/${row.id}/edit`}>
-                <Button size="sm" variant="ghost" title="Edit Employee">
-                  <Edit size={15} />
-                </Button>
+              <Link
+                href={`/portal/hr/employees/${row.id}/edit`}
+                className="btn btn-ghost btn-sm"
+                title="Edit Employee"
+                aria-label={`Edit ${row.fullName}`}
+              >
+                <Edit size={15} />
               </Link>
               {row.employmentStatus === "active" ? (
                 <Button
@@ -304,15 +327,13 @@ export function EmployeeDirectoryClient({
 
           {canWrite && (
             <>
-              <Link href="/portal/hr/import-export">
-                <Button variant="outline" size="sm">
+              {canImport && (
+                <Link href="/portal/hr/import-export" className="btn btn-outline btn-sm">
                   <Upload size={15} style={{ marginRight: 6 }} /> Import CSV
-                </Button>
-              </Link>
-              <Link href="/portal/hr/employees/new">
-                <Button variant="primary" size="sm">
-                  <Plus size={15} style={{ marginRight: 6 }} /> Add Employee
-                </Button>
+                </Link>
+              )}
+              <Link href="/portal/hr/employees/new" className="btn btn-primary btn-sm">
+                <Plus size={15} style={{ marginRight: 6 }} /> Add Employee
               </Link>
             </>
           )}

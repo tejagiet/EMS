@@ -87,6 +87,8 @@ export async function reviewLeaveRequestAction(
 
   const canApprove =
     context.permissions.includes("leave.approve") ||
+    context.activeRole === "org_admin" ||
+    context.activeRole === "hr_manager" ||
     context.activeRole === "manager" ||
     context.activeRole === "super_admin";
 

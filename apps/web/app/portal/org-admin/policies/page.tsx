@@ -1,4 +1,4 @@
-import { getActiveSessionContext } from "@/lib/auth/session";
+import { verifyPortalAccess } from "@/lib/auth/session";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Building, Clock, Calendar, ShieldCheck } from "lucide-react";
@@ -9,7 +9,9 @@ export const metadata = {
 };
 
 export default async function OrgAdminPoliciesPage() {
-  const context = await getActiveSessionContext();
+  const context = await verifyPortalAccess("org_admin", {
+    permission: "organization.write",
+  });
   if (!context || !context.activeOrganization) {
     redirect("/login");
   }

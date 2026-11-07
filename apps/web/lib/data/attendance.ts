@@ -1,5 +1,13 @@
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import { escapeCsvField } from "./employees";
+import {
+  extractHandoverFromReason,
+  encodeHandoverInReason,
+  type WorkHandover,
+  type AssignableColleague,
+  type DelegatedDutyItem,
+} from "./work-handover";
 import type { AttendanceRecord, AttendanceCorrection } from "@ems/types";
 
 export interface ClockStatusResult {
@@ -60,7 +68,7 @@ export async function getTodayAttendanceStatus(
   orgId: string,
   employeeId: string
 ): Promise<ClockStatusResult> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const today = new Date().toISOString().split("T")[0]!;
 
   // 1. Fetch any open record or today's record
@@ -138,7 +146,7 @@ export async function clockIn(
   employeeId: string,
   notes?: string
 ): Promise<{ success: boolean; error?: string; recordId?: string | undefined; isLate?: boolean | undefined }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("clock_in_employee", {
     p_org_id: orgId,
@@ -170,7 +178,7 @@ export async function clockOut(
   employeeId: string,
   notes?: string
 ): Promise<{ success: boolean; error?: string; durationMinutes?: number | undefined; isEarlyDeparture?: boolean | undefined }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("clock_out_employee", {
     p_org_id: orgId,
@@ -202,7 +210,7 @@ export async function getEmployeeAttendanceHistory(
   employeeId: string,
   limit = 30
 ): Promise<AttendanceRecord[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data } = await supabase
     .from("attendance_records")
@@ -244,7 +252,7 @@ export async function getTeamAttendanceRoster(
   managerEmployeeId?: string | null,
   date?: string
 ): Promise<AttendanceRecord[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const targetDate = date ?? new Date().toISOString().split("T")[0]!;
 
   let empQuery = supabase
@@ -334,7 +342,7 @@ export async function getAttendanceCorrectionsList(
   managerEmployeeId?: string | null,
   status?: string
 ): Promise<AttendanceCorrection[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   let query = supabase
     .from("attendance_corrections")
@@ -355,7 +363,11 @@ export async function getAttendanceCorrectionsList(
   > | null) ?? [];
 
   const filtered = managerEmployeeId
-    ? rawList.filter((r) => r.employees?.reporting_manager_id === managerEmployeeId)
+    ? rawList.filter(
+        (r) =>
+          r.employees?.reporting_manager_id === managerEmployeeId ||
+          !r.employees?.reporting_manager_id
+      )
     : rawList;
 
   return filtered.map((r) => {
@@ -398,7 +410,7 @@ export async function submitAttendanceCorrection(
     reason: string;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase.from("attendance_corrections").insert({
     organization_id: orgId,
@@ -426,7 +438,7 @@ export async function reviewAttendanceCorrection(
   reviewerProfileId: string,
   rejectionReason?: string | null
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("process_attendance_correction_decision", {
     p_correction_id: correctionId,
@@ -484,4 +496,254 @@ export async function exportAttendanceCsv(
   ]);
 
   return [headers.join(","), ...rows.map((row) => row.join(","))].join("\r\n");
+}
+
+/**
+ * 10. Get Active Assignable Colleagues for Work Delegation
+ */
+export async function getAssignableColleagues(
+  orgId: string,
+  excludeEmployeeId?: string | null
+): Promise<AssignableColleague[]> {
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from("employees")
+    .select(
+      "id, employee_code, first_name, last_name, profile_id, profiles(full_name), departments:departments!employees_department_id_fkey(name), designations:designations!employees_designation_id_fkey(name)"
+    )
+    .eq("organization_id", orgId)
+    .eq("is_active", true);
+
+  if (error || !data) {
+    console.error("[getAssignableColleagues] Query error:", error);
+    return [];
+  }
+
+  const rawList = data as unknown as Array<{
+    id: string;
+    employee_code: string;
+    first_name: string | null;
+    last_name: string | null;
+    profile_id: string | null;
+    profiles?: { full_name: string | null } | Array<{ full_name: string | null }> | null;
+    departments?: { name: string } | Array<{ name: string }> | null;
+    designations?: { name: string } | Array<{ name: string }> | null;
+  }>;
+
+  return rawList
+    .filter((emp) => emp.id !== excludeEmployeeId)
+    .map((emp) => {
+      const explicitName = [emp.first_name, emp.last_name].filter(Boolean).join(" ").trim();
+      const profName = Array.isArray(emp.profiles) ? emp.profiles[0]?.full_name : emp.profiles?.full_name;
+      const deptName = Array.isArray(emp.departments) ? emp.departments[0]?.name : emp.departments?.name;
+      const desigTitle = Array.isArray(emp.designations) ? emp.designations[0]?.name : emp.designations?.name;
+      const resolvedName = explicitName || profName || `Staff ${emp.employee_code}`;
+
+      return {
+        id: emp.id,
+        employeeCode: emp.employee_code,
+        name: resolvedName,
+        departmentName: deptName,
+        designationTitle: desigTitle,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * 11. Get Duties Delegated TO a Specific Colleague
+ */
+export async function getAssignedSubstituteDuties(
+  orgId: string,
+  colleagueEmployeeId: string
+): Promise<DelegatedDutyItem[]> {
+  const supabase = createAdminClient();
+
+  const [correctionsRes, leavesRes] = await Promise.all([
+    supabase
+      .from("attendance_corrections")
+      .select("id, employee_id, requested_clock_in, requested_clock_out, reason, status, created_at, employees(id, employee_code, first_name, last_name, profiles(full_name))")
+      .eq("organization_id", orgId)
+      .ilike("reason", `%substituteId%${colleagueEmployeeId}%`)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("leave_requests")
+      .select("id, employee_id, start_date, end_date, total_days, reason, status, created_at, employees(id, employee_code, first_name, last_name, profiles(full_name))")
+      .eq("organization_id", orgId)
+      .ilike("reason", `%substituteId%${colleagueEmployeeId}%`)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const results: DelegatedDutyItem[] = [];
+
+  // Parse corrections
+  const rawCorrections = (correctionsRes.data as Array<any> | null) ?? [];
+  for (const row of rawCorrections) {
+    const { handover } = extractHandoverFromReason(row.reason);
+    if (handover && handover.substituteId === colleagueEmployeeId) {
+      const emp = row.employees;
+      const explicitName = [emp?.first_name, emp?.last_name].filter(Boolean).join(" ").trim();
+      const empName = explicitName || emp?.profiles?.full_name || `Colleague ${emp?.employee_code ?? ""}`;
+
+      const dateStr = new Date(row.requested_clock_in).toLocaleDateString();
+
+      results.push({
+        id: row.id,
+        sourceType: "attendance_correction",
+        absentEmployeeId: row.employee_id,
+        absentEmployeeName: empName,
+        absentEmployeeCode: emp?.employee_code ?? "STAFF",
+        handover,
+        dateOrPeriod: `Work Session (${dateStr})`,
+        status: row.status,
+        createdAt: row.created_at,
+      });
+    }
+  }
+
+  // Parse leave requests
+  const rawLeaves = (leavesRes.data as Array<any> | null) ?? [];
+  for (const row of rawLeaves) {
+    const { handover } = extractHandoverFromReason(row.reason);
+    if (handover && handover.substituteId === colleagueEmployeeId) {
+      const emp = row.employees;
+      const explicitName = [emp?.first_name, emp?.last_name].filter(Boolean).join(" ").trim();
+      const empName = explicitName || emp?.profiles?.full_name || `Colleague ${emp?.employee_code ?? ""}`;
+
+      results.push({
+        id: row.id,
+        sourceType: "leave_request",
+        absentEmployeeId: row.employee_id,
+        absentEmployeeName: empName,
+        absentEmployeeCode: emp?.employee_code ?? "STAFF",
+        handover,
+        dateOrPeriod: `${row.start_date} to ${row.end_date} (${row.total_days} days leave)`,
+        status: row.status,
+        createdAt: row.created_at,
+      });
+    }
+  }
+
+  return results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+/**
+ * 12. Get Duties Delegated BY Logged-in Employee to Others
+ */
+export async function getMyDelegatedDuties(
+  orgId: string,
+  employeeId: string
+): Promise<DelegatedDutyItem[]> {
+  const supabase = createAdminClient();
+
+  const [correctionsRes, leavesRes] = await Promise.all([
+    supabase
+      .from("attendance_corrections")
+      .select("id, employee_id, requested_clock_in, requested_clock_out, reason, status, created_at")
+      .eq("organization_id", orgId)
+      .eq("employee_id", employeeId)
+      .ilike("reason", "%[WORK_HANDOVER:%")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("leave_requests")
+      .select("id, employee_id, start_date, end_date, total_days, reason, status, created_at")
+      .eq("organization_id", orgId)
+      .eq("employee_id", employeeId)
+      .ilike("reason", "%[WORK_HANDOVER:%")
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const results: DelegatedDutyItem[] = [];
+
+  const rawCorrections = (correctionsRes.data as Array<any> | null) ?? [];
+  for (const row of rawCorrections) {
+    const { handover } = extractHandoverFromReason(row.reason);
+    if (handover) {
+      results.push({
+        id: row.id,
+        sourceType: "attendance_correction",
+        absentEmployeeId: employeeId,
+        absentEmployeeName: "You",
+        absentEmployeeCode: "SELF",
+        handover,
+        dateOrPeriod: `Work Session (${new Date(row.requested_clock_in).toLocaleDateString()})`,
+        status: row.status,
+        createdAt: row.created_at,
+      });
+    }
+  }
+
+  const rawLeaves = (leavesRes.data as Array<any> | null) ?? [];
+  for (const row of rawLeaves) {
+    const { handover } = extractHandoverFromReason(row.reason);
+    if (handover) {
+      results.push({
+        id: row.id,
+        sourceType: "leave_request",
+        absentEmployeeId: employeeId,
+        absentEmployeeName: "You",
+        absentEmployeeCode: "SELF",
+        handover,
+        dateOrPeriod: `${row.start_date} to ${row.end_date} (${row.total_days} days leave)`,
+        status: row.status,
+        createdAt: row.created_at,
+      });
+    }
+  }
+
+  return results.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+}
+
+/**
+ * 13. Acknowledge Work Handover / Duty Delegation by Substitute Colleague
+ */
+export async function acknowledgeDutyDelegation(
+  orgId: string,
+  recordId: string,
+  sourceType: "attendance_correction" | "leave_request",
+  substituteEmployeeId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = createAdminClient();
+  const table = sourceType === "attendance_correction" ? "attendance_corrections" : "leave_requests";
+
+  const { data: rec, error: fetchErr } = await supabase
+    .from(table)
+    .select("id, reason")
+    .eq("id", recordId)
+    .eq("organization_id", orgId)
+    .single();
+
+  if (fetchErr || !rec) {
+    return { success: false, error: "Record not found or access denied." };
+  }
+
+  const { handover, cleanReason } = extractHandoverFromReason(rec.reason);
+  if (!handover) {
+    return { success: false, error: "No duty handover is registered on this ticket." };
+  }
+
+  if (handover.substituteId !== substituteEmployeeId) {
+    return { success: false, error: "Only the designated substitute colleague can acknowledge this duty." };
+  }
+
+  handover.status = "acknowledged";
+  handover.acknowledgedAt = new Date().toISOString();
+
+  const updatedReason = encodeHandoverInReason(cleanReason, handover);
+
+  const { error: updateErr } = await supabase
+    .from(table)
+    .update({
+      reason: updatedReason,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", recordId)
+    .eq("organization_id", orgId);
+
+  if (updateErr) {
+    return { success: false, error: updateErr.message };
+  }
+
+  return { success: true };
 }

@@ -3,7 +3,7 @@
 import { resetPasswordAction } from "@/lib/auth/actions";
 import { type SyntheticEvent, useState, useTransition } from "react";
 
-export default function ResetPasswordPage() {
+export default function ResetPasswordPage(): React.JSX.Element {
   const [showPassword, setShowPassword] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);

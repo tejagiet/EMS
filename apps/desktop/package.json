@@ -1,33 +1,63 @@
 {
   "name": "@ems/desktop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
-  "description": "EMS Tauri Windows desktop application",
+  "description": "EMS Windows Desktop Application - GIET Polytechnic College AI Department",
+  "author": "GIET Polytechnic College · AI Department · Team T-1",
+  "main": "main.js",
   "scripts": {
-    "dev": "tauri dev",
-    "build": "tauri build",
-    "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix",
-    "typecheck": "tsc --noEmit",
-    "clean": "rimraf src-tauri/target dist"
+    "dev": "electron .",
+    "start": "electron .",
+    "build": "electron-builder --win",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win",
+    "dist:nsis": "electron-builder --win nsis",
+    "dist:portable": "electron-builder --win portable",
+    "clean": "rimraf dist"
+  },
+  "build": {
+    "appId": "in.gietpoly.ems",
+    "productName": "EMS Desktop",
+    "copyright": "Copyright © 2026 GIET Polytechnic College · AI Department · Team T-1",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "connecting.html",
+      "logo.jpg",
+      "icon.png",
+      "icon.ico"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "icon.ico",
+      "legalTrademarks": "GIET Polytechnic College (GIETP-AI-IT-EMS-T1-2026)"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "EMS Desktop"
+    }
   },
   "dependencies": {
     "@ems/config": "workspace:*",
     "@ems/shared": "workspace:*",
     "@ems/types": "workspace:*",
-    "@ems/ui": "workspace:*",
-    "@ems/validation": "workspace:*",
-    "@tauri-apps/api": "^2.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "@ems/ui": "workspace:*"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0",
-    "@types/react": "^19.0.0",
-    "@types/react-dom": "^19.0.0",
+    "concurrently": "^10.0.6",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
     "rimraf": "^6.0.0",
     "typescript": "^5.5.0",
-    "vite": "^6.0.0",
-    "@vitejs/plugin-react": "^4.3.0"
+    "wait-on": "^9.5.1"
   }
 }

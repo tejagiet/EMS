@@ -8,6 +8,7 @@ import {
   submitAttendanceCorrection,
   reviewAttendanceCorrection,
   exportAttendanceCsv,
+  acknowledgeDutyDelegation,
 } from "./attendance";
 import {
   attendanceCorrectionSchema,
@@ -165,6 +166,8 @@ export async function reviewAttendanceCorrectionAction(
 
   const canManage =
     context.permissions.includes("attendance.manage") ||
+    context.activeRole === "org_admin" ||
+    context.activeRole === "hr_manager" ||
     context.activeRole === "manager" ||
     context.activeRole === "super_admin";
 
@@ -225,4 +228,43 @@ export async function exportAttendanceCsvAction(
   const csv = await exportAttendanceCsv(context.activeOrganization.id, managerId, date);
 
   return { success: true, csvContent: csv };
+}
+
+/**
+ * Acknowledge Work Handover / Duty Delegation (Substitute Colleague)
+ */
+export async function acknowledgeDutyDelegationAction(
+  recordId: string,
+  sourceType: "attendance_correction" | "leave_request"
+): Promise<ActionResponse> {
+  const context = await getActiveSessionContext();
+  if (!context || !context.activeOrganization) {
+    return { success: false, error: "Authentication required." };
+  }
+
+  const employeeId = context.linkedEmployee?.id;
+  if (!employeeId) {
+    return {
+      success: false,
+      error: "Your authenticated account is not linked to an active employee record.",
+    };
+  }
+
+  const result = await acknowledgeDutyDelegation(
+    context.activeOrganization.id,
+    recordId,
+    sourceType,
+    employeeId
+  );
+
+  if (!result.success) {
+    return { success: false, error: result.error ?? "Failed to acknowledge duty." };
+  }
+
+  revalidatePath("/portal/employee");
+  revalidatePath("/portal/employee/attendance");
+  revalidatePath("/portal/employee/leave");
+  revalidatePath("/portal/manager/approvals");
+
+  return { success: true };
 }

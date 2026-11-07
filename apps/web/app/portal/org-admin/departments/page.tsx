@@ -1,4 +1,4 @@
-import { getActiveSessionContext } from "@/lib/auth/session";
+import { verifyPortalAccess } from "@/lib/auth/session";
 import { getDepartmentsList, getOrganizationMetadataOptions } from "@/lib/data/employees";
 import { DepartmentsClient } from "@/components/organization/DepartmentsClient";
 import { redirect } from "next/navigation";
@@ -8,24 +8,14 @@ export const metadata = {
 };
 
 export default async function OrgAdminDepartmentsPage() {
-  const context = await getActiveSessionContext();
+  const context = await verifyPortalAccess("org_admin", {
+    permission: "organization.read",
+  });
   if (!context || !context.activeOrganization) {
     redirect("/login");
   }
 
-  const canRead =
-    context.permissions.includes("organization.read") ||
-    context.activeRole === "super_admin" ||
-    context.activeRole === "org_admin";
-
-  if (!canRead) {
-    redirect("/unauthorized");
-  }
-
-  const canWrite =
-    context.permissions.includes("organization.write") ||
-    context.activeRole === "super_admin" ||
-    context.activeRole === "org_admin";
+  const canWrite = context.permissions.includes("organization.write");
 
   const [departments, metadata] = await Promise.all([
     getDepartmentsList(context.activeOrganization.id),

@@ -11,8 +11,12 @@ export const metadata = {
 };
 
 export default async function RecruitmentCandidatesPage() {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin"],
+    permission: "recruitment.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
+  const canWrite = context.permissions.includes("recruitment.write");
 
   const [candidates, postings, branches] = await Promise.all([
     getCandidates(orgId),
@@ -77,6 +81,7 @@ export default async function RecruitmentCandidatesPage() {
             candidates={candidates}
             jobPostings={postings}
             branches={branches.map((b) => ({ id: b.id, name: b.name }))}
+            canWrite={canWrite}
           />
         </CardContent>
       </Card>

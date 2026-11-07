@@ -7,7 +7,9 @@ import {
   updateEmployee,
   setEmployeeStatus,
   upsertDepartment,
+  deleteDepartment,
   upsertBranch,
+  deleteBranch,
   upsertDesignation,
   importEmployeesFromRows,
   exportEmployeesCsv,
@@ -21,6 +23,7 @@ import {
   employeeImportRowSchema,
 } from "@ems/validation";
 import type { EmployeeImportRow } from "@ems/types";
+import { setEmployeePasswordAction } from "./credentials";
 
 export interface ActionResponse<T = unknown> {
   success: boolean;
@@ -104,6 +107,15 @@ export async function createEmployeeAction(
 
   if (!result.success) {
     return { success: false, error: result.error ?? "Failed to create employee record." };
+  }
+
+  const initialPassword = formData.get("initialPassword")?.toString()?.trim() || "Welcome@EMS2026";
+  if (result.employeeId && input.workEmail) {
+    try {
+      await setEmployeePasswordAction(result.employeeId, initialPassword);
+    } catch (passErr) {
+      console.warn("[createEmployeeAction] Failed setting initial password:", passErr);
+    }
   }
 
   revalidatePath("/portal/hr/employees");
@@ -300,6 +312,54 @@ export async function manageBranchAction(
   }
 
   revalidatePath("/portal/hr/branches");
+  return { success: true };
+}
+
+/**
+ * Delete Branch Action
+ */
+export async function deleteBranchAction(branchId: string): Promise<ActionResponse> {
+  const context = await getActiveSessionContext();
+  if (!context || !context.activeOrganization) {
+    return { success: false, error: "Authentication required." };
+  }
+
+  const canWrite = context.permissions.includes("organization.write") || context.activeRole === "super_admin";
+  if (!canWrite) {
+    return { success: false, error: "Access denied: Missing organization.write permission." };
+  }
+
+  const result = await deleteBranch(context.activeOrganization.id, branchId);
+  if (!result.success) {
+    return { success: false, error: result.error ?? "Failed to delete branch." };
+  }
+
+  revalidatePath("/portal/hr/branches");
+  revalidatePath("/portal/org-admin/branches");
+  return { success: true };
+}
+
+/**
+ * Delete Department Action
+ */
+export async function deleteDepartmentAction(departmentId: string): Promise<ActionResponse> {
+  const context = await getActiveSessionContext();
+  if (!context || !context.activeOrganization) {
+    return { success: false, error: "Authentication required." };
+  }
+
+  const canWrite = context.permissions.includes("organization.write") || context.activeRole === "super_admin";
+  if (!canWrite) {
+    return { success: false, error: "Access denied: Missing organization.write permission." };
+  }
+
+  const result = await deleteDepartment(context.activeOrganization.id, departmentId);
+  if (!result.success) {
+    return { success: false, error: result.error ?? "Failed to delete department." };
+  }
+
+  revalidatePath("/portal/hr/departments");
+  revalidatePath("/portal/org-admin/departments");
   return { success: true };
 }
 

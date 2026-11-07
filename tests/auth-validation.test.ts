@@ -3,6 +3,7 @@ import {
   passwordResetSchema,
   passwordSchema,
   signInSchema,
+  signUpSchema,
   switchOrganizationSchema,
   switchRoleSchema,
 } from "@ems/validation";
@@ -36,6 +37,45 @@ describe("Phase 3: Authentication Input Validation", () => {
         password: "",
       });
       expect(emptyPass.success).toBe(false);
+    });
+  });
+
+  describe("Sign-Up Validation", () => {
+    it("accepts a complete signup request", () => {
+      const result = signUpSchema.safeParse({
+        fullName: "New EMS User",
+        email: "new.user@giet-polytechnic.edu",
+        password: "SecurePass123",
+        confirmPassword: "SecurePass123",
+      });
+
+      expect(result.success).toBe(true);
+    });
+
+    it("requires all signup fields", () => {
+      const result = signUpSchema.safeParse({});
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues.map((issue) => issue.path[0])).toEqual(
+          expect.arrayContaining(["fullName", "email", "password", "confirmPassword"]),
+        );
+      }
+    });
+
+    it("rejects mismatched signup passwords on confirmation", () => {
+      const result = signUpSchema.safeParse({
+        fullName: "New EMS User",
+        email: "new.user@giet-polytechnic.edu",
+        password: "SecurePass123",
+        confirmPassword: "DifferentPass123",
+      });
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.error.issues[0]?.path).toEqual(["confirmPassword"]);
+        expect(result.error.issues[0]?.message).toMatch(/do not match/i);
+      }
     });
   });
 

@@ -10,8 +10,13 @@ export const metadata = {
 };
 
 export default async function FinancePayrollRunsPage() {
-  const context = await verifyPortalAccess("finance_payroll_manager");
+  const context = await verifyPortalAccess("finance_payroll_manager", {
+    allowRoles: ["org_admin"],
+    permission: "payroll.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
+  const canWrite = context.permissions.includes("payroll.write");
+  const canApprove = context.permissions.includes("payroll.approve");
 
   const runs = await getPayrollRuns(orgId);
 
@@ -69,7 +74,7 @@ export default async function FinancePayrollRunsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <PayrollRunsClient runs={runs} />
+          <PayrollRunsClient runs={runs} canWrite={canWrite} canApprove={canApprove} />
         </CardContent>
       </Card>
     </div>

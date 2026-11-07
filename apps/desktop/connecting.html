@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employee Management System (EMS) - Connecting...</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%);
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: rgba(30, 41, 59, 0.85);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 520px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    .logo-container {
+      margin-bottom: 20px;
+      display: inline-block;
+      padding: 6px;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      border-radius: 50%;
+      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
+    }
+    .logo {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.15);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+    .spinner-box {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding: 12px 18px;
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 10px;
+      border: 1px solid rgba(51, 65, 85, 0.6);
+    }
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid rgba(59, 130, 246, 0.2);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .status-text {
+      font-size: 13px;
+      font-weight: 500;
+      color: #cbd5e1;
+    }
+    .field-group {
+      text-align: left;
+      margin-bottom: 18px;
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+    input[type="text"] {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    input[type="text"]:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.05s ease;
+      white-space: nowrap;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    .footer-note {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 20px;
+      line-height: 1.5;
+    }
+    .footer-note code {
+      background: rgba(15, 23, 42, 0.8);
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #93c5fd;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo-container">
+      <img src="logo.jpg" alt="EMS Logo" class="logo" onerror="this.src='icon.png'" />
+    </div>
+    
+    <div>
+      <span class="badge">GIET Polytechnic College · AI Dept · Team T-1</span>
+    </div>
+    
+    <h1>Employee Management System</h1>
+    <p class="subtitle">Windows Native Desktop Application</p>
+
+    <div class="spinner-box">
+      <div class="spinner" id="statusSpinner"></div>
+      <span class="status-text" id="statusText">Attempting connection to portal...</span>
+    </div>
+
+    <div class="field-group">
+      <label for="serverUrlInput">EMS Portal URL</label>
+      <div class="input-row">
+        <input type="text" id="serverUrlInput" value="http://localhost:3000" />
+        <button id="connectBtn">Connect Now</button>
+      </div>
+    </div>
+
+    <p class="footer-note">
+      If starting locally, ensure the web portal is running via<br/>
+      <code>pnpm --filter @ems/web dev</code> or <code>pnpm --filter @ems/web start</code>.
+    </p>
+  </div>
+
+  <script>
+    const serverInput = document.getElementById("serverUrlInput");
+    const connectBtn = document.getElementById("connectBtn");
+    const statusText = document.getElementById("statusText");
+    const statusSpinner = document.getElementById("statusSpinner");
+
+    // Initialize saved URL
+    const savedUrl = localStorage.getItem("ems_portal_url") || "http://localhost:3000";
+    serverInput.value = savedUrl;
+
+    async function checkAndNavigate(url, manual = false) {
+      if (!url) return;
+      try {
+        if (manual) {
+          statusText.innerText = "Checking " + url + "...";
+        }
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 2000);
+        
+        await fetch(url, { method: "HEAD", mode: "no-cors", signal: controller.signal });
+        clearTimeout(timeout);
+
+        statusText.innerText = "Connected! Opening portal...";
+        localStorage.setItem("ems_portal_url", url);
+        
+        setTimeout(() => {
+          if (window.emsDesktop && window.emsDesktop.navigate) {
+            window.emsDesktop.navigate(url);
+          } else {
+            window.location.href = url;
+          }
+        }, 300);
+      } catch (err) {
+        if (manual) {
+          statusText.innerText = "Unable to connect to " + url + ". Retrying...";
+        }
+      }
+    }
+
+    connectBtn.addEventListener("click", () => {
+      const url = serverInput.value.trim();
+      if (url) {
+        checkAndNavigate(url, true);
+      }
+    });
+
+    serverInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        connectBtn.click();
+      }
+    });
+
+    // Auto-poll every 2.5 seconds
+    setInterval(() => {
+      const url = serverInput.value.trim();
+      if (url) {
+        checkAndNavigate(url, false);
+      }
+    }, 2500);
+
+    // Initial immediate probe
+    checkAndNavigate(savedUrl, false);
+  </script>
+</body>
+</html>

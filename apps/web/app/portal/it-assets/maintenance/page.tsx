@@ -10,7 +10,9 @@ export const metadata = {
 };
 
 export default async function ItAssetsMaintenancePage() {
-  const context = await verifyPortalAccess("it_assets_manager");
+  const context = await verifyPortalAccess("it_assets_manager", {
+    permission: "asset.manage",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const assets = await getAssets(orgId);
@@ -102,17 +104,21 @@ export default async function ItAssetsMaintenancePage() {
                     </span>
                     <button
                       type="button"
+                      disabled
+                      title="Service log updates are not available yet."
                       style={{
                         padding: "6px 12px",
                         borderRadius: 6,
                         border: "1px solid var(--border)",
                         background: "var(--background)",
-                        cursor: "pointer",
+                        cursor: "not-allowed",
+                        opacity: 0.6,
                         fontSize: "0.8rem",
                       }}
                     >
                       Update Service Log
                     </button>
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>Service log updates unavailable</span>
                   </div>
                 </div>
               ))}

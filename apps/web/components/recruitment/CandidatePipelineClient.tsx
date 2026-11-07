@@ -1,12 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { DataTable, type DataTableColumn } from "../ui/DataTable";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
+import { useRealtime } from "@/src/context/RealtimeContext";
 import {
   createCandidateAction,
   transitionCandidateStageAction,
@@ -47,15 +50,30 @@ interface CandidatePipelineClientProps {
   candidates: Candidate[];
   jobPostings: JobPosting[];
   branches: BranchOption[];
+  canWrite: boolean;
 }
 
 export function CandidatePipelineClient({
   candidates,
   jobPostings,
   branches,
+  canWrite,
 }: CandidatePipelineClientProps) {
+  const router = useRouter();
+  const [candidateList, setCandidateList] = useState<Candidate[]>(candidates);
   const [activeStage, setActiveStage] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    setCandidateList(candidates);
+  }, [candidates]);
+
+  const { broadcastChange, isConnected } = useRealtime({
+    table: "candidates",
+    onUpdate: () => {
+      router.refresh();
+    },
+  });
 
   // New candidate application modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -68,6 +86,32 @@ export function CandidatePipelineClient({
   const [source, setSource] = useState("direct");
   const [savingCandidate, setSavingCandidate] = useState(false);
   const [createError, setCreateError] = useState("");
+
+  // Extended Employee Onboarding Details for end-to-end recruitment
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState("male");
+  const [maritalStatus, setMaritalStatus] = useState("single");
+  const [bloodGroup, setBloodGroup] = useState("B+");
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
+  const [city, setCity] = useState("Rajahmundry");
+  const [state, setState] = useState("Andhra Pradesh");
+  const [postalCode, setPostalCode] = useState("533296");
+  const [country, setCountry] = useState("India");
+  const [emergencyContactName, setEmergencyContactName] = useState("");
+  const [emergencyContactRelationship, setEmergencyContactRelationship] = useState("Parent");
+  const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
+  const [panNumber, setPanNumber] = useState("");
+  const [aadhaarNumber, setAadhaarNumber] = useState("");
+  const [highestQualification, setHighestQualification] = useState("B.Tech (Computer Science)");
+  const [university, setUniversity] = useState("JNTU Kakinada");
+  const [yearOfPassing, setYearOfPassing] = useState("2024");
+  const [experienceYears, setExperienceYears] = useState("1");
+  const [currentCompany, setCurrentCompany] = useState("");
+  const [currentDesignation, setCurrentDesignation] = useState("");
+  const [expectedSalary, setExpectedSalary] = useState("30000");
+  const [noticePeriodDays, setNoticePeriodDays] = useState("30");
+  const [setupPassword, setSetupPassword] = useState("Welcome@EMS2026");
 
   // Candidate Inspector modal
   const [inspectModalOpen, setInspectModalOpen] = useState(false);
@@ -130,6 +174,7 @@ export function CandidatePipelineClient({
 
   const handleCreateCandidate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) return;
     setSavingCandidate(true);
     setCreateError("");
 
@@ -142,6 +187,32 @@ export function CandidatePipelineClient({
     if (notes) formData.append("notes", notes);
     formData.append("source", source);
 
+    // Extended employee onboarding details
+    if (dateOfBirth) formData.append("dateOfBirth", dateOfBirth);
+    if (gender) formData.append("gender", gender);
+    if (maritalStatus) formData.append("maritalStatus", maritalStatus);
+    if (bloodGroup) formData.append("bloodGroup", bloodGroup);
+    if (addressLine1) formData.append("addressLine1", addressLine1);
+    if (addressLine2) formData.append("addressLine2", addressLine2);
+    if (city) formData.append("city", city);
+    if (state) formData.append("state", state);
+    if (postalCode) formData.append("postalCode", postalCode);
+    if (country) formData.append("country", country);
+    if (emergencyContactName) formData.append("emergencyContactName", emergencyContactName);
+    if (emergencyContactRelationship) formData.append("emergencyContactRelationship", emergencyContactRelationship);
+    if (emergencyContactPhone) formData.append("emergencyContactPhone", emergencyContactPhone);
+    if (panNumber) formData.append("panNumber", panNumber);
+    if (aadhaarNumber) formData.append("aadhaarNumber", aadhaarNumber);
+    if (highestQualification) formData.append("highestQualification", highestQualification);
+    if (university) formData.append("university", university);
+    if (yearOfPassing) formData.append("yearOfPassing", yearOfPassing);
+    if (experienceYears) formData.append("experienceYears", experienceYears);
+    if (currentCompany) formData.append("currentCompany", currentCompany);
+    if (currentDesignation) formData.append("currentDesignation", currentDesignation);
+    if (expectedSalary) formData.append("expectedSalary", expectedSalary);
+    if (noticePeriodDays) formData.append("noticePeriodDays", noticePeriodDays);
+    if (setupPassword) formData.append("setupPassword", setupPassword);
+
     const res = await createCandidateAction(formData);
     setSavingCandidate(false);
 
@@ -149,6 +220,12 @@ export function CandidatePipelineClient({
       setCreateError(res.error ?? "Failed to register candidate.");
     } else {
       setCreateModalOpen(false);
+      await broadcastChange({
+        table: "candidates",
+        eventType: "INSERT",
+        message: `New candidate ${firstName} ${lastName} registered.`,
+      });
+      router.refresh();
     }
   };
 
@@ -180,7 +257,7 @@ export function CandidatePipelineClient({
 
   const handleTransition = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCandidate) return;
+    if (!canWrite || !selectedCandidate) return;
     setTransitioning(true);
     setTransitionError("");
 
@@ -197,13 +274,19 @@ export function CandidatePipelineClient({
     } else {
       setTransitionModalOpen(false);
       setTransitionNotes("");
+      await broadcastChange({
+        table: "candidates",
+        eventType: "UPDATE",
+        message: `${selectedCandidate.fullName} moved to ${targetStage.toUpperCase()}.`,
+      });
       await refreshDetails(selectedCandidate.id);
+      router.refresh();
     }
   };
 
   const handleScheduleInterview = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCandidate) return;
+    if (!canWrite || !selectedCandidate) return;
     setScheduling(true);
     setScheduleError("");
 
@@ -228,7 +311,7 @@ export function CandidatePipelineClient({
 
   const handleSaveFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCandidate || !selectedInterviewId) return;
+    if (!canWrite || !selectedCandidate || !selectedInterviewId) return;
     setSavingFeedback(true);
 
     const formData = new FormData();
@@ -249,7 +332,7 @@ export function CandidatePipelineClient({
 
   const handleCreateOffer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCandidate) return;
+    if (!canWrite || !selectedCandidate) return;
     setSavingOffer(true);
     setOfferError("");
 
@@ -267,11 +350,18 @@ export function CandidatePipelineClient({
       setOfferError(res.error ?? "Failed to create offer.");
     } else {
       setOfferModalOpen(false);
+      await broadcastChange({
+        table: "job_offers",
+        eventType: "INSERT",
+        message: `Formal job offer generated for ${selectedCandidate.fullName}.`,
+      });
       await refreshDetails(selectedCandidate.id);
+      router.refresh();
     }
   };
 
   const handleOfferDecision = async (offerId: string, status: "accepted" | "rejected") => {
+    if (!canWrite) return;
     const formData = new FormData();
     formData.append("offerId", offerId);
     formData.append("status", status);
@@ -279,13 +369,19 @@ export function CandidatePipelineClient({
 
     const res = await processJobOfferDecisionAction(formData);
     if (res.success && selectedCandidate) {
+      await broadcastChange({
+        table: "job_offers",
+        eventType: "UPDATE",
+        message: `Job offer for ${selectedCandidate.fullName} marked ${status.toUpperCase()}.`,
+      });
       await refreshDetails(selectedCandidate.id);
+      router.refresh();
     }
   };
 
   const handleHireHandoff = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCandidate) return;
+    if (!canWrite || !selectedCandidate) return;
     setHiring(true);
     setHireError("");
 
@@ -303,7 +399,13 @@ export function CandidatePipelineClient({
       const data = res.data as { employeeCode: string } | undefined;
       setHiredSuccess({ code: data?.employeeCode ?? "EMP" });
       setHandoffModalOpen(false);
+      await broadcastChange({
+        table: "employees",
+        eventType: "INSERT",
+        message: `${selectedCandidate.fullName} onboarded as employee ${data?.employeeCode ?? ""}.`,
+      });
       await refreshDetails(selectedCandidate.id);
+      router.refresh();
     }
   };
 
@@ -340,7 +442,7 @@ export function CandidatePipelineClient({
     }
   };
 
-  const filteredCandidates = candidates.filter((c) => {
+  const filteredCandidates = candidateList.filter((c) => {
     const matchesStage = activeStage === "all" || c.stage === activeStage;
     const matchesSearch =
       searchQuery.trim() === "" ||
@@ -356,10 +458,13 @@ export function CandidatePipelineClient({
       header: "Candidate Name",
       sortable: true,
       render: (row) => (
-        <div>
-          <div style={{ fontWeight: 600 }}>{row.fullName}</div>
+        <Link
+          href={`/portal/recruitment/candidates/${row.id}`}
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          <div style={{ fontWeight: 600, color: "var(--primary)" }}>{row.fullName}</div>
           <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>{row.email}</div>
-        </div>
+        </Link>
       ),
     },
     {
@@ -411,14 +516,18 @@ export function CandidatePipelineClient({
       header: "Actions",
       align: "right",
       render: (row) => (
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => { void handleInspect(row); }}
-          leftIcon={<Eye size={14} />}
+        <Link
+          href={`/portal/recruitment/candidates/${row.id}`}
+          style={{ textDecoration: "none" }}
         >
-          View Profile
-        </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            leftIcon={<Eye size={14} />}
+          >
+            View Profile
+          </Button>
+        </Link>
       ),
     },
   ];
@@ -437,9 +546,11 @@ export function CandidatePipelineClient({
           <Button variant="ghost" onClick={() => { void handleExportCsv(); }} leftIcon={<Download size={15} />}>
             Export Pipeline
           </Button>
-          <Button variant="primary" onClick={openCreateCandidate} leftIcon={<Plus size={15} />}>
-            Add Candidate
-          </Button>
+          {canWrite && (
+            <Button variant="primary" onClick={openCreateCandidate} leftIcon={<Plus size={15} />}>
+              Add Candidate
+            </Button>
+          )}
         </div>
       </div>
 
@@ -484,13 +595,14 @@ export function CandidatePipelineClient({
       />
 
       {/* Create Candidate Modal */}
-      <Modal
-        isOpen={createModalOpen}
-        onClose={() => { setCreateModalOpen(false); }}
-        title="Register Candidate Application"
-        maxWidth="540px"
-      >
-        <form onSubmit={handleCreateCandidate} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {canWrite && (
+        <Modal
+          isOpen={createModalOpen}
+          onClose={() => { setCreateModalOpen(false); }}
+          title="Register Candidate Application & Onboarding Record"
+          maxWidth="720px"
+        >
+        <form onSubmit={handleCreateCandidate} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {createError && (
             <div
               style={{
@@ -508,44 +620,223 @@ export function CandidatePipelineClient({
             </div>
           )}
 
-          <Select
-            label="Applied Position"
-            value={jobPostingId}
-            onChange={(e) => { setJobPostingId(e.target.value); }}
-            required
-            options={jobPostings.map((j) => ({
-              value: j.id,
-              label: `${j.title} (${j.code})`,
-            }))}
-          />
+          {/* Core Job & Identity Details */}
+          <div>
+            <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "var(--primary)", fontWeight: 600 }}>
+              1. Job Requisition & Primary Identity
+            </h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <Select
+                label="Applied Position *"
+                value={jobPostingId}
+                onChange={(e) => { setJobPostingId(e.target.value); }}
+                required
+                options={jobPostings.map((j) => ({
+                  value: j.id,
+                  label: `${j.title} (${j.code})`,
+                }))}
+              />
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <Input
-              label="First Name"
-              value={firstName}
-              onChange={(e) => { setFirstName(e.target.value); }}
-              required
-            />
-            <Input
-              label="Last Name"
-              value={lastName}
-              onChange={(e) => { setLastName(e.target.value); }}
-              required
-            />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Input
+                  label="First Name *"
+                  value={firstName}
+                  onChange={(e) => { setFirstName(e.target.value); }}
+                  required
+                />
+                <Input
+                  label="Last Name *"
+                  value={lastName}
+                  onChange={(e) => { setLastName(e.target.value); }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Input
+                  label="Email Address *"
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); }}
+                  required
+                />
+                <Input
+                  label="Phone Number"
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value); }}
+                  placeholder="+919876543210"
+                />
+              </div>
+            </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {/* Personal & Demographic Details */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+            <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "var(--primary)", fontWeight: 600 }}>
+              2. Personal & Civil Demographics
+            </h4>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12 }}>
+              <Input
+                label="Date of Birth"
+                type="date"
+                value={dateOfBirth}
+                onChange={(e) => setDateOfBirth(e.target.value)}
+              />
+              <Select
+                label="Gender"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                options={[
+                  { value: "male", label: "Male" },
+                  { value: "female", label: "Female" },
+                  { value: "other", label: "Other" },
+                ]}
+              />
+              <Select
+                label="Marital Status"
+                value={maritalStatus}
+                onChange={(e) => setMaritalStatus(e.target.value)}
+                options={[
+                  { value: "single", label: "Single" },
+                  { value: "married", label: "Married" },
+                ]}
+              />
+              <Input
+                label="Blood Group"
+                value={bloodGroup}
+                onChange={(e) => setBloodGroup(e.target.value)}
+                placeholder="e.g. B+"
+              />
+            </div>
+          </div>
+
+          {/* Residential Address */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+            <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "var(--primary)", fontWeight: 600 }}>
+              3. Residential Address Coordinates
+            </h4>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <Input
+                label="Address Line 1"
+                value={addressLine1}
+                onChange={(e) => setAddressLine1(e.target.value)}
+                placeholder="Street address, flat / house number"
+              />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+                <Input
+                  label="City"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                />
+                <Input
+                  label="State"
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                />
+                <Input
+                  label="Postal Code"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Emergency Contact & Statutory IDs */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+            <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "var(--primary)", fontWeight: 600 }}>
+              4. Emergency Contact & Statutory IDs
+            </h4>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+              <Input
+                label="Emergency Contact Name"
+                value={emergencyContactName}
+                onChange={(e) => setEmergencyContactName(e.target.value)}
+                placeholder="e.g. Ramesh Sharma"
+              />
+              <Input
+                label="Relationship"
+                value={emergencyContactRelationship}
+                onChange={(e) => setEmergencyContactRelationship(e.target.value)}
+                placeholder="Parent / Spouse"
+              />
+              <Input
+                label="Emergency Phone"
+                value={emergencyContactPhone}
+                onChange={(e) => setEmergencyContactPhone(e.target.value)}
+                placeholder="+919876543210"
+              />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 10 }}>
+              <Input
+                label="PAN Number"
+                value={panNumber}
+                onChange={(e) => setPanNumber(e.target.value)}
+                placeholder="e.g. ABCDE1234F"
+              />
+              <Input
+                label="Aadhaar / National ID"
+                value={aadhaarNumber}
+                onChange={(e) => setAadhaarNumber(e.target.value)}
+                placeholder="e.g. 1234 5678 9012"
+              />
+            </div>
+          </div>
+
+          {/* Academic & Professional Qualifications */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+            <h4 style={{ margin: "0 0 10px 0", fontSize: "0.9rem", color: "var(--primary)", fontWeight: 600 }}>
+              5. Qualifications & Compensation Expectation
+            </h4>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <Input
+                label="Highest Degree"
+                value={highestQualification}
+                onChange={(e) => setHighestQualification(e.target.value)}
+                placeholder="e.g. M.Tech in AI"
+              />
+              <Input
+                label="University / Board"
+                value={university}
+                onChange={(e) => setUniversity(e.target.value)}
+                placeholder="e.g. Andhra University"
+              />
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginTop: 10 }}>
+              <Input
+                label="Prior Experience (Years)"
+                value={experienceYears}
+                onChange={(e) => setExperienceYears(e.target.value)}
+                placeholder="e.g. 2"
+              />
+              <Input
+                label="Expected Salary (₹/mo)"
+                value={expectedSalary}
+                onChange={(e) => setExpectedSalary(e.target.value)}
+                placeholder="e.g. 30000"
+              />
+              <Input
+                label="Notice Period (Days)"
+                value={noticePeriodDays}
+                onChange={(e) => setNoticePeriodDays(e.target.value)}
+                placeholder="30"
+              />
+            </div>
+          </div>
+
+          {/* Portal Setup Credentials */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 14 }}>
+            <h4 style={{ margin: "0 0 4px 0", fontSize: "0.9rem", color: "var(--primary)", fontWeight: 600 }}>
+              6. Onboarding Portal Login Credentials
+            </h4>
+            <p style={{ margin: "0 0 10px 0", fontSize: "0.78rem", color: "var(--text-muted)" }}>
+              Initial password provisioned for employee portal access (visible to administrators).
+            </p>
             <Input
-              label="Email Address"
-              type="email"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); }}
-              required
-            />
-            <Input
-              label="Phone Number"
-              value={phone}
-              onChange={(e) => { setPhone(e.target.value); }}
+              label="Setup Password"
+              value={setupPassword}
+              onChange={(e) => setSetupPassword(e.target.value)}
+              placeholder="e.g. Welcome@EMS2026"
             />
           </div>
 
@@ -553,7 +844,7 @@ export function CandidatePipelineClient({
             label="Application Notes / Source"
             value={notes}
             onChange={(e) => { setNotes(e.target.value); }}
-            placeholder="e.g. Referred via campus placement portal"
+            placeholder="e.g. Recommended via faculty referral"
           />
 
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 }}>
@@ -561,11 +852,12 @@ export function CandidatePipelineClient({
               Cancel
             </Button>
             <Button variant="primary" type="submit" isLoading={savingCandidate}>
-              Register Candidate
+              Register Candidate & Complete Details
             </Button>
           </div>
         </form>
-      </Modal>
+        </Modal>
+      )}
 
       {/* Candidate Inspector Modal */}
       {selectedCandidate && (
@@ -634,7 +926,7 @@ export function CandidatePipelineClient({
             </div>
 
             {/* Quick Action Progression Toolbar */}
-            <div
+            {canWrite && <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
@@ -709,7 +1001,7 @@ export function CandidatePipelineClient({
                     </Button>
                   )}
               </div>
-            </div>
+            </div>}
 
             {/* Interviews Section */}
             <div>
@@ -749,7 +1041,7 @@ export function CandidatePipelineClient({
                         )}
                       </div>
                       <div>
-                        {intv.status === "scheduled" && (
+                        {canWrite && intv.status === "scheduled" && (
                           <Button
                             size="sm"
                             variant="secondary"
@@ -802,7 +1094,7 @@ export function CandidatePipelineClient({
                         </div>
                       </div>
                       <div style={{ display: "flex", gap: 6 }}>
-                        {off.status === "draft" && (
+                        {canWrite && off.status === "draft" && (
                           <Button size="sm" variant="secondary" onClick={() => { void handleOfferDecision(off.id, "accepted"); }}>
                             Mark Accepted
                           </Button>
@@ -853,12 +1145,13 @@ export function CandidatePipelineClient({
       )}
 
       {/* Stage Progression Modal */}
-      <Modal
-        isOpen={transitionModalOpen}
-        onClose={() => { setTransitionModalOpen(false); }}
-        title="Progress Candidate Stage"
-        maxWidth="460px"
-      >
+      {canWrite && (
+        <Modal
+          isOpen={transitionModalOpen}
+          onClose={() => { setTransitionModalOpen(false); }}
+          title="Progress Candidate Stage"
+          maxWidth="460px"
+        >
         <form onSubmit={handleTransition} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {transitionError && (
             <div style={{ padding: "8px 12px", borderRadius: 4, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", fontSize: "0.82rem" }}>
@@ -894,15 +1187,17 @@ export function CandidatePipelineClient({
             </Button>
           </div>
         </form>
-      </Modal>
+        </Modal>
+      )}
 
       {/* Schedule Interview Modal */}
-      <Modal
-        isOpen={interviewModalOpen}
-        onClose={() => { setInterviewModalOpen(false); }}
-        title="Schedule Evaluation Interview"
-        maxWidth="500px"
-      >
+      {canWrite && (
+        <Modal
+          isOpen={interviewModalOpen}
+          onClose={() => { setInterviewModalOpen(false); }}
+          title="Schedule Evaluation Interview"
+          maxWidth="500px"
+        >
         <form onSubmit={handleScheduleInterview} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {scheduleError && (
             <div style={{ padding: "8px 12px", borderRadius: 4, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", fontSize: "0.82rem" }}>
@@ -955,15 +1250,17 @@ export function CandidatePipelineClient({
             </Button>
           </div>
         </form>
-      </Modal>
+        </Modal>
+      )}
 
       {/* Interview Feedback Modal */}
-      <Modal
-        isOpen={feedbackModalOpen}
-        onClose={() => { setFeedbackModalOpen(false); }}
-        title="Record Interview Evaluation"
-        maxWidth="480px"
-      >
+      {canWrite && (
+        <Modal
+          isOpen={feedbackModalOpen}
+          onClose={() => { setFeedbackModalOpen(false); }}
+          title="Record Interview Evaluation"
+          maxWidth="480px"
+        >
         <form onSubmit={handleSaveFeedback} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Select
@@ -1023,15 +1320,17 @@ export function CandidatePipelineClient({
             </Button>
           </div>
         </form>
-      </Modal>
+        </Modal>
+      )}
 
       {/* Create Job Offer Modal */}
-      <Modal
-        isOpen={offerModalOpen}
-        onClose={() => { setOfferModalOpen(false); }}
-        title="Issue Formal Job Offer"
-        maxWidth="480px"
-      >
+      {canWrite && (
+        <Modal
+          isOpen={offerModalOpen}
+          onClose={() => { setOfferModalOpen(false); }}
+          title="Issue Formal Job Offer"
+          maxWidth="480px"
+        >
         <form onSubmit={handleCreateOffer} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {offerError && (
             <div style={{ padding: "8px 12px", borderRadius: 4, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", fontSize: "0.82rem" }}>
@@ -1073,15 +1372,17 @@ export function CandidatePipelineClient({
             </Button>
           </div>
         </form>
-      </Modal>
+        </Modal>
+      )}
 
       {/* Handoff to Onboarding Modal */}
-      <Modal
-        isOpen={handoffModalOpen}
-        onClose={() => { setHandoffModalOpen(false); }}
-        title="Complete Hiring & Onboarding Handoff"
-        maxWidth="480px"
-      >
+      {canWrite && (
+        <Modal
+          isOpen={handoffModalOpen}
+          onClose={() => { setHandoffModalOpen(false); }}
+          title="Complete Hiring & Onboarding Handoff"
+          maxWidth="480px"
+        >
         <form onSubmit={handleHireHandoff} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {hireError && (
             <div style={{ padding: "8px 12px", borderRadius: 4, background: "rgba(239, 68, 68, 0.1)", color: "#ef4444", fontSize: "0.82rem" }}>
@@ -1130,7 +1431,8 @@ export function CandidatePipelineClient({
             </Button>
           </div>
         </form>
-      </Modal>
+        </Modal>
+      )}
     </div>
   );
 }

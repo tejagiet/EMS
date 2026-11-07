@@ -1,5 +1,7 @@
-import { getActiveSessionContext } from "@/lib/auth/session";
+import { verifyPortalAccess } from "@/lib/auth/session";
 import { getEmployeeById } from "@/lib/data/employees";
+import { getEmployeeAttendanceHistory } from "@/lib/data/attendance";
+import { getEmployeeLeaveBalances } from "@/lib/data/leave";
 import { EmployeeProfileView } from "@/components/employees/EmployeeProfileView";
 import { notFound, redirect } from "next/navigation";
 
@@ -14,23 +16,27 @@ interface EmployeeDetailPageProps {
 }
 
 export default async function EmployeeDetailPage({ params }: EmployeeDetailPageProps) {
-  const context = await getActiveSessionContext();
+  const context = await verifyPortalAccess("hr_manager", {
+    allowRoles: ["org_admin"],
+    permission: "employee.read",
+  });
   if (!context || !context.activeOrganization) {
     redirect("/login");
   }
 
   const { id } = await params;
-  const canRead = context.permissions.includes("employee.read") || context.activeRole === "super_admin" || context.linkedEmployee?.id === id;
-  if (!canRead) {
-    redirect("/unauthorized");
-  }
 
-  const employee = await getEmployeeById(context.activeOrganization.id, id);
+  const [employee, attendanceHistory, leaveBalances] = await Promise.all([
+    getEmployeeById(context.activeOrganization.id, id),
+    getEmployeeAttendanceHistory(context.activeOrganization.id, id, 15).catch(() => []),
+    getEmployeeLeaveBalances(context.activeOrganization.id, id).catch(() => []),
+  ]);
+
   if (!employee) {
     notFound();
   }
 
-  const canWrite = context.permissions.includes("employee.write") || context.activeRole === "super_admin";
+  const canWrite = context.permissions.includes("employee.write");
   const isAuditor = context.activeRole === "auditor";
 
   return (
@@ -38,6 +44,8 @@ export default async function EmployeeDetailPage({ params }: EmployeeDetailPageP
       employee={employee}
       canWrite={canWrite}
       isAuditor={isAuditor}
+      attendanceHistory={attendanceHistory}
+      leaveBalances={leaveBalances}
     />
   );
 }

@@ -1,0 +1,92 @@
+{
+  "version": 3,
+  "sha256": "a481ebd40a50addc54b14e86ad1edd1aac244d7696b3acb2301be4bd553d98ec",
+  "filename": "T1_Employee_Management_System_Complete_Documentation.pdf",
+  "pageCount": 29,
+  "textPages": 29,
+  "textBudgetExhausted": false,
+  "pagesWithoutText": [],
+  "renderedPages": [
+    {
+      "page": 1,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 62313,
+      "mime": "image/png",
+      "fileName": "page-001.png"
+    },
+    {
+      "page": 2,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 98507,
+      "mime": "image/png",
+      "fileName": "page-002.png"
+    },
+    {
+      "page": 3,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 194161,
+      "mime": "image/png",
+      "fileName": "page-003.png"
+    },
+    {
+      "page": 4,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 141431,
+      "mime": "image/png",
+      "fileName": "page-004.png"
+    },
+    {
+      "page": 5,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 204549,
+      "mime": "image/png",
+      "fileName": "page-005.png"
+    },
+    {
+      "page": 6,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 42964,
+      "mime": "image/png",
+      "fileName": "page-006.png"
+    },
+    {
+      "page": 7,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 239653,
+      "mime": "image/jpeg",
+      "fileName": "page-007.jpg"
+    },
+    {
+      "page": 8,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 218274,
+      "mime": "image/png",
+      "fileName": "page-008.png"
+    },
+    {
+      "page": 9,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 105580,
+      "mime": "image/png",
+      "fileName": "page-009.png"
+    },
+    {
+      "page": 10,
+      "width": 1211,
+      "height": 1568,
+      "bytes": 144081,
+      "mime": "image/png",
+      "fileName": "page-010.png"
+    }
+  ],
+  "renderBudgetExhausted": true
+}

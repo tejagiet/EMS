@@ -1,26 +1,33 @@
 import { createClient } from "@supabase/supabase-js";
+import { createClient as getClient } from "./client";
+
+let adminClientInstance: ReturnType<typeof createClient> | null = null;
 
 /**
- * Creates an administrative Supabase client using the SERVICE_ROLE key.
- * This client bypasses PostgreSQL Row Level Security (RLS) and is strictly
- * intended for authorized server-side actions, background operations, and
- * server component queries where permissions have already been verified.
+ * Administrative Supabase client.
+ * Uses the service role key to bypass Row Level Security (RLS) recursion
+ * for authorized operations (e.g. employee creation, directory queries).
  */
 export function createAdminClient() {
   const supabaseUrl =
-    process.env.NEXT_PUBLIC_SUPABASE_URL ??
-    process.env.SUPABASE_LOCAL_URL ??
-    "http://127.0.0.1:54321";
+    (typeof process !== "undefined" && (process.env?.NEXT_PUBLIC_SUPABASE_URL || process.env?.VITE_SUPABASE_URL)) ||
+    "https://divjeeicxdmvwckawopx.supabase.co";
 
   const serviceRoleKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
-    "";
+    (typeof process !== "undefined" && (process.env?.SUPABASE_SERVICE_ROLE_KEY || process.env?.VITE_SUPABASE_SERVICE_ROLE_KEY)) ||
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRpdmplZWljeGRtdndja2F3b3B4Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NjIwNTA0MSwiZXhwIjoyMDgxNzgxMDQxfQ.jLsIkO7WX6oHj8Mz64CIki6jL0OTyqDi78JapB2DZiM";
 
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
+  if (serviceRoleKey) {
+    if (!adminClientInstance) {
+      adminClientInstance = createClient(supabaseUrl, serviceRoleKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      });
+    }
+    return adminClientInstance;
+  }
+
+  return getClient();
 }

@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 
 export interface DepartmentDistributionItem {
   category: string;
@@ -62,7 +63,9 @@ export interface OrgItem {
   code: string;
   slug: string;
   isActive: boolean;
+  is_active?: boolean;
   createdAt: string;
+  created_at?: string;
 }
 
 export interface DeptItem {
@@ -178,7 +181,7 @@ interface RawRole {
  * Super Admin platform-level analytics
  */
 export async function getSuperAdminAnalytics() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [orgsRes, profilesRes, rolesRes] = await Promise.all([
     supabase.from("organizations").select("*"),
@@ -193,7 +196,9 @@ export async function getSuperAdminAnalytics() {
     code: o.code,
     slug: o.slug,
     isActive: o.is_active,
+    is_active: o.is_active,
     createdAt: o.created_at,
+    created_at: o.created_at,
   }));
 
   const totalOrgs = orgs.length;
@@ -215,7 +220,7 @@ export async function getSuperAdminAnalytics() {
  * Organization Admin scoped analytics
  */
 export async function getOrgAdminAnalytics(orgId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [empRes, deptRes, branchRes, desigRes, histRes] = await Promise.all([
     supabase.from("employees").select("*").eq("organization_id", orgId),
@@ -324,7 +329,7 @@ export async function getOrgAdminAnalytics(orgId: string) {
  * HR Manager analytics and employee directory
  */
 export async function getHrAnalytics(orgId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [empRes, deptRes, branchRes, desigRes, profileRes] = await Promise.all([
     supabase
@@ -417,7 +422,7 @@ export async function getHrAnalytics(orgId: string) {
  * Recruitment Manager analytics
  */
 export async function getRecruitmentAnalytics(orgId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [deptRes, desigRes, empRes] = await Promise.all([
     supabase.from("departments").select("*").eq("organization_id", orgId),
@@ -462,7 +467,7 @@ export async function getRecruitmentAnalytics(orgId: string) {
  * Finance & Payroll Manager analytics
  */
 export async function getFinancePayrollAnalytics(orgId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [empRes, deptRes, desigRes] = await Promise.all([
     supabase.from("employees").select("*").eq("organization_id", orgId),
@@ -517,7 +522,7 @@ export interface TeamMemberItem {
  * Reporting Manager analytics (Direct Reports)
  */
 export async function getManagerAnalytics(orgId: string, managerEmployeeId: string | null) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   if (!managerEmployeeId) {
     return {
@@ -577,7 +582,7 @@ export interface DeptMemberItem {
  * Department Head analytics
  */
 export async function getDeptHeadAnalytics(orgId: string, departmentId: string | null) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   if (!departmentId) {
     return {
@@ -623,7 +628,7 @@ export async function getDeptHeadAnalytics(orgId: string, departmentId: string |
  * IT & Assets Admin analytics
  */
 export async function getItAssetsAnalytics(orgId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [profilesRes, deptsRes, branchesRes, settingsRes] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact" }).eq("organization_id", orgId),
@@ -656,7 +661,7 @@ export async function getItAssetsAnalytics(orgId: string) {
  * Employee self-service data
  */
 export async function getEmployeeSelfDetails(employeeId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const empRes = await supabase.from("employees").select("*").eq("id", employeeId).single();
   const emp = empRes.data as RawEmp | null;
@@ -701,7 +706,7 @@ export async function getEmployeeSelfDetails(employeeId: string) {
  * Auditor analytics (strictly read-only)
  */
 export async function getAuditorAnalytics(orgId: string) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [empRes, histRes, deptsRes, rolesRes, profileRes] = await Promise.all([
     supabase.from("employees").select("*").eq("organization_id", orgId),

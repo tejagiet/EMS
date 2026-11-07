@@ -39,6 +39,24 @@ export const signInSchema = z.object({
 
 export type SignInInput = z.infer<typeof signInSchema>;
 
+export const signUpSchema = z
+  .object({
+    fullName: z
+      .string({ required_error: "Full name is required" })
+      .min(2, "Full name must be at least 2 characters")
+      .max(100, "Full name must not exceed 100 characters")
+      .trim(),
+    email: emailSchema,
+    password: passwordSchema,
+    confirmPassword: z.string({ required_error: "Please confirm your password" }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+export type SignUpInput = z.infer<typeof signUpSchema>;
+
 export const passwordRecoverySchema = z.object({
   email: emailSchema,
 });
@@ -284,7 +302,7 @@ export const attendanceCorrectionSchema = z.object({
   employeeId: z.string().uuid("Invalid employee ID").optional().nullable(),
   requestedClockIn: z.string().datetime("Requested clock-in must be an ISO 8601 timestamp"),
   requestedClockOut: z.string().datetime("Requested clock-out must be an ISO 8601 timestamp"),
-  reason: z.string().min(5, "Reason must be at least 5 characters long").max(500).trim(),
+  reason: z.string().min(5, "Reason must be at least 5 characters long").max(2000).trim(),
 });
 
 export type AttendanceCorrectionInput = z.infer<typeof attendanceCorrectionSchema>;
@@ -292,7 +310,7 @@ export type AttendanceCorrectionInput = z.infer<typeof attendanceCorrectionSchem
 export const attendanceCorrectionDecisionSchema = z.object({
   correctionId: z.string().uuid("Invalid correction ID"),
   decision: z.enum(["approved", "rejected"]),
-  rejectionReason: z.string().max(500).optional().nullable(),
+  rejectionReason: z.string().max(2000).optional().nullable(),
 });
 
 export type AttendanceCorrectionDecisionInput = z.infer<typeof attendanceCorrectionDecisionSchema>;
@@ -313,7 +331,7 @@ export const leaveRequestSchema = z.object({
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Start date must be YYYY-MM-DD"),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "End date must be YYYY-MM-DD"),
   totalDays: z.number().positive("Total days must be greater than zero"),
-  reason: z.string().min(5, "Reason must be at least 5 characters long").max(500).trim(),
+  reason: z.string().min(5, "Reason must be at least 5 characters long").max(2000).trim(),
 });
 
 export type LeaveRequestInput = z.infer<typeof leaveRequestSchema>;

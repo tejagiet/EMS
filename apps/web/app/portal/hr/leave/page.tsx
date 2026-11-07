@@ -11,7 +11,9 @@ export const metadata = {
 };
 
 export default async function LeaveManagementPage() {
-  const context = await verifyPortalAccess("hr_manager");
+  const context = await verifyPortalAccess("hr_manager", {
+    permission: "leave.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const [leaveTypes, allRequests] = await Promise.all([

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn } from "../ui/DataTable";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
+import { useRealtime } from "@/src/context/RealtimeContext";
 import {
   createAssetAction,
   assignAssetAction,
@@ -41,11 +43,23 @@ export function AssetsClient({
   organizationId,
   currentUserId,
 }: AssetsClientProps) {
-  const [assets] = useState<ExtendedAsset[]>(initialAssets);
+  const router = useRouter();
+  const [assets, setAssets] = useState<ExtendedAsset[]>(initialAssets);
   const [isNewAssetModalOpen, setIsNewAssetModalOpen] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<ExtendedAsset | null>(null);
+
+  useEffect(() => {
+    setAssets(initialAssets);
+  }, [initialAssets]);
+
+  const { broadcastChange, isConnected } = useRealtime({
+    table: "assets",
+    onUpdate: () => {
+      router.refresh();
+    },
+  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -93,7 +107,12 @@ export function AssetsClient({
       }
 
       setIsNewAssetModalOpen(false);
-      window.location.reload();
+      await broadcastChange({
+        table: "assets",
+        eventType: "INSERT",
+        message: `Hardware asset ${assetTag} registered.`,
+      });
+      router.refresh();
     } catch (err: any) {
       setErrorMessage(err.message || "An unexpected error occurred.");
     } finally {
@@ -123,7 +142,12 @@ export function AssetsClient({
       }
 
       setIsAssignModalOpen(false);
-      window.location.reload();
+      await broadcastChange({
+        table: "assets",
+        eventType: "UPDATE",
+        message: `Asset ${selectedAsset.assetTag} assigned to employee.`,
+      });
+      router.refresh();
     } catch (err: any) {
       setErrorMessage(err.message || "An unexpected error occurred.");
     } finally {
@@ -153,7 +177,12 @@ export function AssetsClient({
       }
 
       setIsReturnModalOpen(false);
-      window.location.reload();
+      await broadcastChange({
+        table: "assets",
+        eventType: "UPDATE",
+        message: `Asset ${selectedAsset.assetTag} successfully returned to IT inventory.`,
+      });
+      router.refresh();
     } catch (err: any) {
       setErrorMessage(err.message || "An unexpected error occurred.");
     } finally {

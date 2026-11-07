@@ -1,4 +1,4 @@
-import { InstitutionalFooter, InstitutionalHeader } from "@/components/ui/InstitutionalHeader";
+import { InstitutionalFooter } from "@/components/ui/InstitutionalHeader";
 import { ArrowLeft, FileQuestion } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -10,8 +10,6 @@ export const metadata = {
 export default function NotFound() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <InstitutionalHeader />
-
       <main
         style={{
           flex: 1,

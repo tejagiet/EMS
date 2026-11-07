@@ -14,7 +14,10 @@ interface AttendancePageProps {
 }
 
 export default async function AttendancePage({ searchParams }: AttendancePageProps) {
-  const context = await verifyPortalAccess("hr_manager");
+  const context = await verifyPortalAccess("hr_manager", {
+    allowRoles: ["org_admin"],
+    permission: "attendance.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
   const params = await searchParams;
   const targetDate = params.date ?? new Date().toISOString().split("T")[0]!;

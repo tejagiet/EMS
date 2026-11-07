@@ -18,7 +18,13 @@ export const metadata = {
 export default async function ManagerDashboard() {
   const context = await verifyPortalAccess("manager");
   const orgId = context.activeOrganization?.id ?? "";
-  const managerEmployeeId = context.linkedEmployee?.id ?? null;
+
+  const isGlobalApprover =
+    context.activeRole === "org_admin" ||
+    context.activeRole === "hr_manager" ||
+    context.activeRole === "super_admin";
+
+  const managerEmployeeId = isGlobalApprover ? null : (context.linkedEmployee?.id ?? null);
   const today = new Date().toISOString().split("T")[0]!;
 
   const [data, roster, pendingLeaves, pendingCorrections] = await Promise.all([

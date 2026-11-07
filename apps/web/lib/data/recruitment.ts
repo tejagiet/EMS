@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import { escapeCsvField } from "./employees";
 import type {
   JobPosting,
@@ -107,7 +108,7 @@ export async function getJobPostings(
   orgId: string,
   status?: string
 ): Promise<JobPosting[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   let query = supabase
     .from("job_postings")
@@ -182,7 +183,7 @@ export async function upsertJobPosting(
     status?: JobPosting["status"] | undefined;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   if (payload.id) {
     const { error } = await supabase
@@ -242,7 +243,7 @@ export async function getCandidates(
     search?: string | undefined;
   }
 ): Promise<Candidate[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   let query = supabase
     .from("candidates")
@@ -297,7 +298,7 @@ export async function getCandidateDetails(
   interviews: Interview[];
   offers: JobOffer[];
 }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: cData } = await supabase
     .from("candidates")
@@ -416,7 +417,7 @@ export async function createCandidate(
     source?: string | undefined;
   }
 ): Promise<{ success: boolean; error?: string; candidateId?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase
     .from("candidates")
@@ -464,7 +465,7 @@ export async function transitionCandidateStage(
   actorId: string,
   notes?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("transition_candidate_stage", {
     p_candidate_id: candidateId,
@@ -497,7 +498,7 @@ export async function scheduleInterview(
     interviewerName: string;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase.from("interviews").insert({
     organization_id: orgId,
@@ -526,7 +527,7 @@ export async function recordInterviewFeedback(
     recommendation?: Interview["recommendation"] | undefined;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from("interviews")
@@ -558,7 +559,7 @@ export async function createJobOffer(
     notes?: string | null | undefined;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase.from("job_offers").insert({
     organization_id: orgId,
@@ -584,7 +585,7 @@ export async function processJobOfferDecision(
   status: "sent" | "accepted" | "rejected" | "withdrawn",
   notes?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from("job_offers")
@@ -613,7 +614,7 @@ export async function hireCandidateToEmployee(
   employeeId?: string | undefined;
   employeeCode?: string | undefined;
 }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("hire_candidate_to_employee", {
     p_candidate_id: candidateId,

@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { manageBranchAction } from "@/lib/data/employee-actions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { manageBranchAction, deleteBranchAction } from "@/lib/data/employee-actions";
 import type { BranchDetail } from "@ems/types";
-import { Plus, Edit, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Users } from "lucide-react";
 
 interface BranchesClientProps {
   initialBranches: BranchDetail[];
@@ -18,13 +19,16 @@ interface BranchesClientProps {
 
 export function BranchesClient({ initialBranches, canWrite }: BranchesClientProps) {
   const router = useRouter();
+  const [branches, setBranches] = useState<BranchDetail[]>(initialBranches);
   const [isPending, startTransition] = useTransition();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<BranchDetail | null>(null);
+  const [deletingBranch, setDeletingBranch] = useState<BranchDetail | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const filteredBranches = initialBranches.filter((b) =>
+  const filteredBranches = branches.filter((b) =>
     searchQuery === "" ||
     b.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     b.code.toLowerCase().includes(searchQuery.toLowerCase())
@@ -40,6 +44,25 @@ export function BranchesClient({ initialBranches, canWrite }: BranchesClientProp
     setEditingBranch(branch);
     setError(null);
     setModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingBranch) return;
+    setIsDeleting(true);
+    try {
+      const res = await deleteBranchAction(deletingBranch.id);
+      if (!res.success) {
+        setError(res.error ?? "Failed to delete branch.");
+      } else {
+        setBranches((prev) => prev.filter((b) => b.id !== deletingBranch.id));
+        setDeletingBranch(null);
+        router.refresh();
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete branch.");
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -119,9 +142,19 @@ export function BranchesClient({ initialBranches, canWrite }: BranchesClientProp
       align: "right",
       render: (row) =>
         canWrite ? (
-          <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(row)}>
-            <Edit size={14} style={{ marginRight: 4 }} /> Edit
-          </Button>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+            <Button size="sm" variant="ghost" onClick={() => handleOpenEdit(row)}>
+              <Edit size={14} style={{ marginRight: 4 }} /> Edit
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setDeletingBranch(row)}
+              style={{ color: "#ef4444" }}
+            >
+              <Trash2 size={14} style={{ marginRight: 4 }} /> Delete
+            </Button>
+          </div>
         ) : null,
     },
   ];
@@ -225,6 +258,20 @@ export function BranchesClient({ initialBranches, canWrite }: BranchesClientProp
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={Boolean(deletingBranch)}
+        title="Delete Branch Location"
+        description={`Are you sure you want to delete branch "${deletingBranch?.name}" (${deletingBranch?.code})? Staff members and departments stationed at this branch will have their branch assignment cleared.`}
+        confirmLabel="Delete Branch"
+        cancelLabel="Cancel"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          if (!isDeleting) setDeletingBranch(null);
+        }}
+      />
     </div>
   );
 }

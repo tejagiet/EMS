@@ -12,7 +12,9 @@ export const metadata = {
 };
 
 export default async function FinancePayrollApprovalsPage() {
-  const context = await verifyPortalAccess("finance_payroll_manager");
+  const context = await verifyPortalAccess("finance_payroll_manager", {
+    permission: "payroll.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const runs: PayrollRun[] = await getPayrollRuns(orgId);

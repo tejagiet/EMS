@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { DataTable, type DataTableColumn } from "../ui/DataTable";
 import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Modal } from "../ui/Modal";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
+import { useRealtime } from "@/src/context/RealtimeContext";
 import {
   registerDocumentAction,
   verifyDocumentAction,
@@ -39,11 +41,23 @@ export function DocumentsClient({
   organizationId,
   currentUserId,
 }: DocumentsClientProps) {
-  const [documents] = useState<EmployeeDocument[]>(initialDocuments);
+  const router = useRouter();
+  const [documents, setDocuments] = useState<EmployeeDocument[]>(initialDocuments);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState<EmployeeDocument | null>(null);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
+
+  useEffect(() => {
+    setDocuments(initialDocuments);
+  }, [initialDocuments]);
+
+  const { broadcastChange, isConnected } = useRealtime({
+    table: "documents",
+    onUpdate: () => {
+      router.refresh();
+    },
+  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -71,6 +85,7 @@ export function DocumentsClient({
         fileSizeBytes: 245000,
         mimeType: "application/pdf",
         expiryDate: expiryDate || null,
+        uploadedBy: currentUserId,
       });
 
       if (!res.success) {
@@ -80,7 +95,12 @@ export function DocumentsClient({
       }
 
       setIsUploadModalOpen(false);
-      window.location.reload();
+      await broadcastChange({
+        table: "documents",
+        eventType: "INSERT",
+        message: `Employee credential "${title}" uploaded and registered.`,
+      });
+      router.refresh();
     } catch (err: any) {
       setErrorMessage(err.message || "An unexpected error occurred.");
     } finally {
@@ -103,7 +123,12 @@ export function DocumentsClient({
         alert(res.error || "Failed to update document verification status.");
       } else {
         setIsVerifyModalOpen(false);
-        window.location.reload();
+        await broadcastChange({
+          table: "documents",
+          eventType: "UPDATE",
+          message: `Document "${selectedDoc.title}" marked ${status.toUpperCase()}.`,
+        });
+        router.refresh();
       }
     } catch (err: any) {
       alert(err.message || "An unexpected error occurred.");

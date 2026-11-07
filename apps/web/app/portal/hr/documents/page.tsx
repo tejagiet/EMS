@@ -8,7 +8,9 @@ export const metadata = {
 };
 
 export default async function DocumentsPage() {
-  const context = await verifyPortalAccess("hr_manager");
+  const context = await verifyPortalAccess("hr_manager", {
+    permission: "document.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const supabase = await createClient();

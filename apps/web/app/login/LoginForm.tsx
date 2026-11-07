@@ -126,6 +126,11 @@ export function LoginForm({ initialMessage, initialError, redirectTo }: LoginFor
         {isPending ? "Authenticating..." : "Sign In to EMS"}
       </button>
 
+      <div style={{ marginTop: 20, textAlign: "center" }}>
+        <p style={{ color: "var(--text-muted)", fontSize: "0.82rem", margin: 0 }}>
+          Public registrations disabled. Staff credentials are setup and provisioned by Institutional Administrators.
+        </p>
+      </div>
     </form>
   );
 }

@@ -10,7 +10,9 @@ export const metadata = {
 };
 
 export default async function DeptHeadLeavePage() {
-  const context = await verifyPortalAccess("dept_head");
+  const context = await verifyPortalAccess("dept_head", {
+    permission: "leave.approve",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const pendingLeaves = await getTeamLeaveRequests(orgId, null, "pending");

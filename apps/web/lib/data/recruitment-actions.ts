@@ -25,6 +25,13 @@ import {
   getCandidateDetails,
 } from "./recruitment";
 import type { CandidateStage, Interview, JobOffer } from "@ems/types";
+import {
+  serializeCandidateDetails,
+  parseCandidateDetails,
+  type CandidateEmployeeDetails,
+} from "./candidate-details";
+import { setEmployeePasswordAction } from "./credentials";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 export interface RecruitmentActionResult {
   success: boolean;
@@ -39,7 +46,9 @@ export interface RecruitmentActionResult {
 export async function upsertJobPostingAction(
   formData: FormData
 ): Promise<RecruitmentActionResult> {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.activeOrganization) {
     return { success: false, error: "Active organization context required." };
   }
@@ -111,7 +120,9 @@ export async function upsertJobPostingAction(
 export async function createCandidateAction(
   formData: FormData
 ): Promise<RecruitmentActionResult> {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.activeOrganization) {
     return { success: false, error: "Active organization context required." };
   }
@@ -136,13 +147,44 @@ export async function createCandidateAction(
     return { success: false, error: "Validation failed.", fieldErrors };
   }
 
+  // Extract complete employee details for end-to-end recruitment onboarding
+  const extendedDetails: CandidateEmployeeDetails = {
+    dateOfBirth: formData.get("dateOfBirth")?.toString() || undefined,
+    gender: formData.get("gender")?.toString() || undefined,
+    maritalStatus: formData.get("maritalStatus")?.toString() || undefined,
+    bloodGroup: formData.get("bloodGroup")?.toString() || undefined,
+    addressLine1: formData.get("addressLine1")?.toString() || undefined,
+    addressLine2: formData.get("addressLine2")?.toString() || undefined,
+    city: formData.get("city")?.toString() || undefined,
+    state: formData.get("state")?.toString() || undefined,
+    postalCode: formData.get("postalCode")?.toString() || undefined,
+    country: formData.get("country")?.toString() || "India",
+    emergencyContactName: formData.get("emergencyContactName")?.toString() || undefined,
+    emergencyContactRelationship: formData.get("emergencyContactRelationship")?.toString() || undefined,
+    emergencyContactPhone: formData.get("emergencyContactPhone")?.toString() || undefined,
+    panNumber: formData.get("panNumber")?.toString() || undefined,
+    aadhaarNumber: formData.get("aadhaarNumber")?.toString() || undefined,
+    highestQualification: formData.get("highestQualification")?.toString() || undefined,
+    university: formData.get("university")?.toString() || undefined,
+    yearOfPassing: formData.get("yearOfPassing")?.toString() || undefined,
+    experienceYears: formData.get("experienceYears")?.toString() || undefined,
+    currentCompany: formData.get("currentCompany")?.toString() || undefined,
+    currentDesignation: formData.get("currentDesignation")?.toString() || undefined,
+    expectedSalary: formData.get("expectedSalary")?.toString() || undefined,
+    noticePeriodDays: formData.get("noticePeriodDays")?.toString() || undefined,
+    setupPassword: formData.get("setupPassword")?.toString() || "Welcome@EMS2026",
+    additionalNotes: rawData.notes || undefined,
+  };
+
+  const finalNotes = serializeCandidateDetails(extendedDetails, rawData.notes || "");
+
   const result = await createCandidate(context.activeOrganization.id, {
     jobPostingId: validation.data.jobPostingId,
     firstName: validation.data.firstName,
     lastName: validation.data.lastName,
     email: validation.data.email,
     phone: validation.data.phone ?? null,
-    notes: validation.data.notes ?? null,
+    notes: finalNotes,
     source: validation.data.source,
   });
 
@@ -160,7 +202,9 @@ export async function createCandidateAction(
 export async function transitionCandidateStageAction(
   formData: FormData
 ): Promise<RecruitmentActionResult> {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.profile) {
     return { success: false, error: "Profile context required." };
   }
@@ -197,7 +241,9 @@ export async function transitionCandidateStageAction(
 export async function scheduleInterviewAction(
   formData: FormData
 ): Promise<RecruitmentActionResult> {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.activeOrganization) {
     return { success: false, error: "Organization context required." };
   }
@@ -239,7 +285,9 @@ export async function scheduleInterviewAction(
 export async function recordInterviewFeedbackAction(
   formData: FormData
 ): Promise<RecruitmentActionResult> {
-  await verifyPortalAccess("recruitment_manager");
+  await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
 
   const rawData = {
     interviewId: formData.get("interviewId")?.toString() || "",
@@ -275,7 +323,9 @@ export async function recordInterviewFeedbackAction(
 export async function createJobOfferAction(
   formData: FormData
 ): Promise<RecruitmentActionResult> {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.activeOrganization) {
     return { success: false, error: "Organization context required." };
   }
@@ -319,7 +369,9 @@ export async function createJobOfferAction(
 export async function processJobOfferDecisionAction(
   formData: FormData
 ): Promise<RecruitmentActionResult> {
-  await verifyPortalAccess("recruitment_manager");
+  await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
 
   const rawData = {
     offerId: formData.get("offerId")?.toString() || "",
@@ -352,7 +404,9 @@ export async function processJobOfferDecisionAction(
 export async function hireCandidateAction(
   formData: FormData
 ): Promise<RecruitmentActionResult> {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.profile) {
     return { success: false, error: "Profile context required." };
   }
@@ -379,6 +433,42 @@ export async function hireCandidateAction(
     return { success: false, error: result.error ?? "Hiring handoff failed." };
   }
 
+  // End-to-end transfer of candidate application details directly to new employee record
+  if (result.employeeId) {
+    try {
+      const adminClient = createAdminClient();
+      const { data: cand } = await adminClient
+        .from("candidates")
+        .select("notes, first_name, last_name, email, phone")
+        .eq("id", validation.data.candidateId)
+        .single();
+
+      if (cand) {
+        const details = parseCandidateDetails(cand.notes);
+        await adminClient
+          .from("employees")
+          .update({
+            address_line1: details.addressLine1 || null,
+            address_line2: details.addressLine2 || null,
+            city: details.city || null,
+            state: details.state || null,
+            postal_code: details.postalCode || null,
+            country: details.country || "India",
+            emergency_contact_name: details.emergencyContactName || null,
+            emergency_contact_relationship: details.emergencyContactRelationship || null,
+            emergency_contact_phone: details.emergencyContactPhone || null,
+          })
+          .eq("id", result.employeeId);
+
+        // Provision portal access password so employee can login and admin can view credentials
+        const passwordToSet = details.setupPassword || "Welcome@EMS2026";
+        await setEmployeePasswordAction(result.employeeId, passwordToSet);
+      }
+    } catch (transferErr) {
+      console.warn("[hireCandidateAction] Extended details transfer warning:", transferErr);
+    }
+  }
+
   revalidatePath("/portal/recruitment");
   revalidatePath("/portal/hr");
   revalidatePath("/portal/hr/employees");
@@ -395,7 +485,9 @@ export async function hireCandidateAction(
  * 9. Export Recruitment Pipeline CSV Action
  */
 export async function exportRecruitmentCsvAction(): Promise<string> {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.activeOrganization) throw new Error("Active organization required.");
   return exportRecruitmentCsv(context.activeOrganization.id);
 }
@@ -404,6 +496,8 @@ export async function exportRecruitmentCsvAction(): Promise<string> {
  * 10. Get Candidate Details Action
  */
 export async function getCandidateDetailsAction(candidateId: string) {
-  await verifyPortalAccess("recruitment_manager");
+  await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   return getCandidateDetails(candidateId);
 }

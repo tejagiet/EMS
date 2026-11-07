@@ -9,7 +9,7 @@ interface UnauthorizedPageProps {
   }>;
 }
 
-export default async function UnauthorizedPage({ searchParams }: UnauthorizedPageProps) {
+export default async function UnauthorizedPage({ searchParams }: UnauthorizedPageProps): Promise<React.JSX.Element> {
   const params = await searchParams;
   const context = await getCurrentUserContext();
 

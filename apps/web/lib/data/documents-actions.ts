@@ -19,6 +19,7 @@ export async function registerDocumentAction(formData: {
   mimeType: string;
   expiryDate?: string | null;
   notes?: string | null;
+  uploadedBy?: string | null;
 }) {
   const result = await registerDocument(formData);
   revalidatePath("/portal/hr/documents");

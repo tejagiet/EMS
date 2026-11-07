@@ -10,7 +10,9 @@ export const metadata = {
 };
 
 export default async function DeptHeadStaffPage() {
-  const context = await verifyPortalAccess("dept_head");
+  const context = await verifyPortalAccess("dept_head", {
+    permission: "employee.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
   const deptId = context.linkedEmployee?.departmentId ?? null;
 

@@ -11,7 +11,9 @@ export const metadata = {
 };
 
 export default async function AuditorLogsPage() {
-  const context = await verifyPortalAccess("auditor");
+  const context = await verifyPortalAccess("auditor", {
+    permission: "audit.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
   const data = await getAuditorAnalytics(orgId);
 

@@ -11,6 +11,10 @@ export default async function PortalLayout({ children }: { children: React.React
     redirect("/login");
   }
 
+  if (context.memberships.length === 0) {
+    redirect("/login?error=access_pending");
+  }
+
   return (
     <ThemeProvider>
       <ToastProvider>

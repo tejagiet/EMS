@@ -23,6 +23,7 @@ import {
   Home,
   Key,
   Laptop,
+  Lock,
   LogOut,
   Menu,
   PanelLeftClose,
@@ -30,6 +31,7 @@ import {
   PieChart,
   Settings,
   Sliders,
+  Unlock,
   User,
   UserCheck,
   Users,
@@ -39,9 +41,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useState } from "react";
 import { Breadcrumbs } from "../ui/Breadcrumbs";
-import { InstitutionalFooter } from "../ui/InstitutionalHeader";
 import { ThemeToggle } from "../ui/ThemeToggle";
 import { NotificationPanel } from "./NotificationPanel";
+import { useRealtime } from "@/src/context/RealtimeContext";
 
 interface AppShellProps {
   context: AuthenticatedUserContext;
@@ -50,9 +52,55 @@ interface AppShellProps {
 
 export function AppShell({ context, children }: AppShellProps) {
   const pathname = usePathname();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { isConnected, status: realtimeStatus } = useRealtime();
+  const [isSidebarLocked, setIsSidebarLocked] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("ems_sidebar_layout_locked");
+      return saved === null ? true : saved === "true";
+    }
+    return true;
+  });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      const locked = localStorage.getItem("ems_sidebar_layout_locked");
+      if (locked === null || locked === "true") return false;
+      return localStorage.getItem("ems_sidebar_collapsed") === "true";
+    }
+    return false;
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+
+  const toggleSidebarLock = () => {
+    const nextLocked = !isSidebarLocked;
+    setIsSidebarLocked(nextLocked);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ems_sidebar_layout_locked", String(nextLocked));
+    }
+    if (nextLocked) {
+      setSidebarCollapsed(false);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ems_sidebar_collapsed", "false");
+      }
+    }
+  };
+
+  const handleToggleCollapse = () => {
+    if (isSidebarLocked) {
+      setIsSidebarLocked(false);
+      setSidebarCollapsed(true);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ems_sidebar_layout_locked", "false");
+        localStorage.setItem("ems_sidebar_collapsed", "true");
+      }
+    } else {
+      const nextCollapsed = !sidebarCollapsed;
+      setSidebarCollapsed(nextCollapsed);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("ems_sidebar_collapsed", String(nextCollapsed));
+      }
+    }
+  };
 
   const activeRole = context.activeRole;
   const config = PORTAL_CONFIGS[activeRole];
@@ -174,19 +222,37 @@ export function AppShell({ context, children }: AppShellProps) {
             <Menu size={20} />
           </button>
 
-          {/* Desktop sidebar collapse toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              setSidebarCollapsed(!sidebarCollapsed);
-            }}
-            className="btn btn-ghost btn-sm hidden md:flex"
-            style={{ padding: 6 }}
-            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label="Toggle sidebar collapse"
-          >
-            {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
-          </button>
+          {/* Side panel lock & collapse controls */}
+          <div className="hidden md:flex" style={{ alignItems: "center", gap: 4 }}>
+            <button
+              type="button"
+              onClick={handleToggleCollapse}
+              className="btn btn-ghost btn-sm"
+              style={{ padding: 6 }}
+              title={sidebarCollapsed ? "Expand side panel" : "Collapse side panel"}
+              aria-label="Toggle side panel collapse"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+            <button
+              type="button"
+              onClick={toggleSidebarLock}
+              className="btn btn-ghost btn-sm"
+              style={{
+                padding: 6,
+                color: isSidebarLocked ? "var(--primary)" : "var(--text-muted)",
+                backgroundColor: isSidebarLocked ? "rgba(30, 58, 138, 0.1)" : "transparent",
+              }}
+              title={
+                isSidebarLocked
+                  ? "Side panel layout is locked in open position. Click to unlock."
+                  : "Lock side panel layout in open position."
+              }
+              aria-label="Lock side panel layout"
+            >
+              {isSidebarLocked ? <Lock size={16} /> : <Unlock size={16} />}
+            </button>
+          </div>
 
           <Link href="/portal" style={{ textDecoration: "none", color: "inherit", display: "flex", alignItems: "center", gap: 8 }}>
             <img
@@ -208,6 +274,25 @@ export function AppShell({ context, children }: AppShellProps) {
           >
             {roleDef.name}
           </span>
+
+          {/* Realtime Live Updates Status Pill */}
+          <div
+            className={`realtime-status-pill ${
+              isConnected ? "online" : realtimeStatus === "connecting" ? "connecting" : "offline"
+            }`}
+            title={
+              isConnected
+                ? "Real-time sync active: Live status updates across portals"
+                : realtimeStatus === "connecting"
+                ? "Connecting to live Supabase channel..."
+                : "Real-time updates disconnected"
+            }
+          >
+            <span className="realtime-pulse-dot" />
+            <span className="realtime-status-text hidden sm:inline">
+              {isConnected ? "Live" : realtimeStatus === "connecting" ? "Connecting" : "Offline"}
+            </span>
+          </div>
         </div>
 
         {/* Header Right Actions */}
@@ -455,22 +540,55 @@ export function AppShell({ context, children }: AppShellProps) {
         {/* Desktop & Mobile Drawer Sidebar */}
         <aside
           className={`shell-sidebar ${sidebarCollapsed ? "collapsed" : ""} ${
-            mobileMenuOpen ? "mobile-open" : ""
-          }`}
+            isSidebarLocked ? "locked" : ""
+          } ${mobileMenuOpen ? "mobile-open" : ""}`}
         >
           <div className="sidebar-nav">
             {!sidebarCollapsed && (
               <div
                 style={{
-                  fontSize: "0.72rem",
-                  textTransform: "uppercase",
-                  color: "var(--text-muted)",
-                  fontWeight: 700,
-                  letterSpacing: 0.5,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                   padding: "4px 10px 8px",
                 }}
               >
-                Navigation
+                <span
+                  style={{
+                    fontSize: "0.72rem",
+                    textTransform: "uppercase",
+                    color: "var(--text-muted)",
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Navigation
+                </span>
+                <button
+                  type="button"
+                  onClick={toggleSidebarLock}
+                  title={
+                    isSidebarLocked
+                      ? "Side panel is locked in place. Click to unlock."
+                      : "Lock side panel in open position."
+                  }
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    background: isSidebarLocked ? "rgba(30, 58, 138, 0.12)" : "rgba(100, 116, 139, 0.1)",
+                    color: isSidebarLocked ? "var(--primary)" : "var(--text-muted)",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "2px 6px",
+                    fontSize: "0.68rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  {isSidebarLocked ? <Lock size={11} /> : <Unlock size={11} />}
+                  <span>{isSidebarLocked ? "Locked" : "Lock"}</span>
+                </button>
               </div>
             )}
 
@@ -492,20 +610,6 @@ export function AppShell({ context, children }: AppShellProps) {
               );
             })}
           </div>
-
-          {!sidebarCollapsed && (
-            <div
-              style={{
-                padding: "16px",
-                borderTop: "1px solid var(--sidebar-border)",
-                fontSize: "0.72rem",
-                color: "var(--text-muted)",
-              }}
-            >
-              <div>GIET Polytechnic College</div>
-              <div style={{ fontWeight: 600, color: "var(--text-main)" }}>AI Dept · Team T-1</div>
-            </div>
-          )}
         </aside>
 
         {mobileMenuOpen && (
@@ -525,9 +629,6 @@ export function AppShell({ context, children }: AppShellProps) {
           {children}
         </main>
       </div>
-
-      {/* Institutional Footer */}
-      <InstitutionalFooter />
     </div>
   );
 }

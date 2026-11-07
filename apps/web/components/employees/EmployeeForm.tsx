@@ -148,6 +148,14 @@ export function EmployeeForm({ mode, initialData, metadata }: EmployeeFormProps)
               placeholder="Ext 204"
               error={fieldErrors.workPhone}
             />
+            {mode === "create" && (
+              <Input
+                label="Initial Portal Password"
+                name="initialPassword"
+                defaultValue="Welcome@EMS2026"
+                helperText="Password is set up and visible to administrators in employee profile."
+              />
+            )}
           </div>
         </CardContent>
       </Card>

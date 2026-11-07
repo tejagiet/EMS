@@ -1,4 +1,4 @@
-import { getActiveSessionContext } from "@/lib/auth/session";
+import { verifyPortalAccess } from "@/lib/auth/session";
 import { getEmployeesDirectory, getOrganizationMetadataOptions } from "@/lib/data/employees";
 import { EmployeeDirectoryClient } from "@/components/employees/EmployeeDirectoryClient";
 import { redirect } from "next/navigation";
@@ -24,17 +24,15 @@ interface EmployeesPageProps {
 }
 
 export default async function EmployeesPage({ searchParams }: EmployeesPageProps) {
-  const context = await getActiveSessionContext();
+  const context = await verifyPortalAccess("hr_manager", {
+    allowRoles: ["org_admin"],
+    permission: "employee.read",
+  });
   if (!context || !context.activeOrganization) {
     redirect("/login");
   }
 
-  const canRead = context.permissions.includes("employee.read") || context.activeRole === "super_admin";
-  if (!canRead) {
-    redirect("/unauthorized");
-  }
-
-  const canWrite = context.permissions.includes("employee.write") || context.activeRole === "super_admin";
+  const canWrite = context.permissions.includes("employee.write");
 
   const resolvedParams = await searchParams;
   const page = resolvedParams.page ? Number(resolvedParams.page) : 1;
@@ -68,6 +66,7 @@ export default async function EmployeesPage({ searchParams }: EmployeesPageProps
       branches={metadataOptions.branches}
       designations={metadataOptions.designations}
       canWrite={canWrite}
+      canImport={context.activeRole === "hr_manager" || context.activeRole === "super_admin"}
     />
   );
 }

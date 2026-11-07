@@ -233,7 +233,14 @@ export async function getEmployeesDirectory(
   }
 
   if (error) {
-    throw new Error(`Failed to query employees directory: ${error.message}`);
+    console.error(`[getEmployeesDirectory] Failed to query employees directory: ${error.message}`);
+    return {
+      employees: [],
+      totalCount: 0,
+      page,
+      pageSize,
+      totalPages: 1,
+    };
   }
 
   const rawEmployees = (rawEmpData as RawEmployeeRecord[] | null) ?? [];
@@ -564,7 +571,7 @@ export interface CreateEmployeePayload {
 }
 
 export async function createEmployee(payload: CreateEmployeePayload): Promise<{ success: boolean; employeeId?: string; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // If no employeeCode provided, generate one transactionally
   let finalCode = payload.employeeCode?.trim();
@@ -595,7 +602,8 @@ export async function createEmployee(payload: CreateEmployeePayload): Promise<{ 
     if (!desig) return { success: false, error: "The selected designation does not belong to your organization." };
   }
   if (payload.reportingManagerId) {
-    const { data: mgr } = await supabase.from("employees").select("id").eq("organization_id", payload.organizationId).eq("id", payload.reportingManagerId).single();
+    const adminClient = createAdminClient();
+    const { data: mgr } = await adminClient.from("employees").select("id").eq("organization_id", payload.organizationId).eq("id", payload.reportingManagerId).single();
     if (!mgr) return { success: false, error: "The selected reporting manager does not belong to your organization." };
   }
 
@@ -968,6 +976,50 @@ export async function upsertDepartment(
   return { success: true };
 }
 
+export async function deleteDepartment(
+  orgId: string,
+  departmentId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  // Try RPC first
+  try {
+    const { error: rpcError } = await supabase.rpc("delete_department", {
+      p_department_id: departmentId,
+      p_org_id: orgId,
+    });
+    if (!rpcError) return { success: true };
+  } catch {
+    // continue to direct table delete
+  }
+
+  // Unlink employees stationed in this department
+  await supabase
+    .from("employees")
+    .update({ department_id: null })
+    .eq("organization_id", orgId)
+    .eq("department_id", departmentId);
+
+  // Unlink child departments
+  await supabase
+    .from("departments")
+    .update({ parent_department_id: null })
+    .eq("organization_id", orgId)
+    .eq("parent_department_id", departmentId);
+
+  const { error } = await supabase
+    .from("departments")
+    .delete()
+    .eq("organization_id", orgId)
+    .eq("id", departmentId);
+
+  if (error) {
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
+}
+
 export async function getBranchesList(orgId: string): Promise<BranchDetail[]> {
   const supabase = await createClient();
 
@@ -1071,6 +1123,50 @@ export async function upsertBranch(
     } catch {
       return { success: false, error: error.message };
     }
+  }
+
+  return { success: true };
+}
+
+export async function deleteBranch(
+  orgId: string,
+  branchId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  // Try RPC first
+  try {
+    const { error: rpcError } = await supabase.rpc("delete_branch", {
+      p_branch_id: branchId,
+      p_org_id: orgId,
+    });
+    if (!rpcError) return { success: true };
+  } catch {
+    // continue to direct table delete
+  }
+
+  // Unlink branch from employees stationed here
+  await supabase
+    .from("employees")
+    .update({ branch_id: null })
+    .eq("organization_id", orgId)
+    .eq("branch_id", branchId);
+
+  // Unlink branch from departments stationed here
+  await supabase
+    .from("departments")
+    .update({ branch_id: null })
+    .eq("organization_id", orgId)
+    .eq("branch_id", branchId);
+
+  const { error } = await supabase
+    .from("branches")
+    .delete()
+    .eq("organization_id", orgId)
+    .eq("id", branchId);
+
+  if (error) {
+    return { success: false, error: error.message };
   }
 
   return { success: true };

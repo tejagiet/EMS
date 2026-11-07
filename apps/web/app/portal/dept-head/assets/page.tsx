@@ -11,7 +11,9 @@ export const metadata = {
 };
 
 export default async function DeptHeadAssetsPage() {
-  const context = await verifyPortalAccess("dept_head");
+  const context = await verifyPortalAccess("dept_head", {
+    permission: "asset.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
   const deptId = context.linkedEmployee?.departmentId ?? null;
 

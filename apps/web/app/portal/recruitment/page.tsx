@@ -14,8 +14,12 @@ export const metadata = {
 };
 
 export default async function RecruitmentDashboard() {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin"],
+    permission: "recruitment.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
+  const canWrite = context.permissions.includes("recruitment.write");
 
   const [analytics, postings, candidates, depts, desigs, branches] = await Promise.all([
     getRecruitmentAnalytics(orgId),
@@ -100,6 +104,7 @@ export default async function RecruitmentDashboard() {
             candidates={candidates}
             jobPostings={postings}
             branches={branchOptions}
+            canWrite={canWrite}
           />
         </CardContent>
       </Card>

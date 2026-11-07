@@ -1,4 +1,4 @@
-import { getActiveSessionContext } from "@/lib/auth/session";
+import { verifyPortalAccess } from "@/lib/auth/session";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -28,7 +28,9 @@ interface UserRoleRow {
 }
 
 export default async function OrgAdminRolesPage() {
-  const context = await getActiveSessionContext();
+  const context = await verifyPortalAccess("org_admin", {
+    permission: "role.manage",
+  });
   if (!context || !context.activeOrganization) {
     redirect("/login");
   }

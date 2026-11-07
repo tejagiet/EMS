@@ -9,8 +9,8 @@ import type {
 } from "@ems/types";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { cache } from "react";
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import {
   isPortalAccessAllowed,
   isScopedContextReady,
@@ -102,12 +102,34 @@ interface DbEmployee {
   is_active: boolean;
 }
 
+let cachedContextPromise: Promise<AuthenticatedUserContext | null> | null = null;
+let lastCacheTime = 0;
+
+export function clearUserContextCache() {
+  cachedContextPromise = null;
+  lastCacheTime = 0;
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("ems:refresh", clearUserContextCache);
+}
+
 /**
- * Loads the complete authenticated context on the server side.
+ * Loads the complete authenticated context.
  * Validates the session, profile, organization memberships, and permissions.
- * Memoized via React cache() to prevent redundant DB roundtrips in layout & child pages.
+ * Memoized to prevent redundant DB roundtrips.
  */
-export const getCurrentUserContext = cache(async function getCurrentUserContext(): Promise<AuthenticatedUserContext | null> {
+export async function getCurrentUserContext(): Promise<AuthenticatedUserContext | null> {
+  const now = Date.now();
+  if (cachedContextPromise && now - lastCacheTime < 2500) {
+    return cachedContextPromise;
+  }
+  lastCacheTime = now;
+  cachedContextPromise = fetchCurrentUserContext();
+  return cachedContextPromise;
+}
+
+async function fetchCurrentUserContext(): Promise<AuthenticatedUserContext | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -201,6 +223,70 @@ export const getCurrentUserContext = cache(async function getCurrentUserContext(
       roleIsActive: role?.is_active === true,
       expiresAt: row.expires_at,
     });
+  }
+
+  // Self-heal active employees who are missing user_roles or profile organization links
+  if (roleAssignments.length === 0) {
+    try {
+      const admin = createAdminClient();
+      let { data: empRecord } = await admin
+        .from("employees")
+        .select("id, organization_id, is_active, first_name, last_name")
+        .eq("profile_id", user.id)
+        .eq("is_active", true)
+        .maybeSingle();
+
+      if (!empRecord && user.email) {
+        const { data: empByEmail } = await admin
+          .from("employees")
+          .select("id, organization_id, is_active, first_name, last_name")
+          .ilike("work_email", user.email)
+          .eq("is_active", true)
+          .maybeSingle();
+        if (empByEmail) {
+          await admin.from("employees").update({ profile_id: user.id }).eq("id", empByEmail.id);
+          empRecord = empByEmail;
+        }
+      }
+
+      if (empRecord && empRecord.organization_id) {
+        await admin.from("profiles").upsert({
+          id: user.id,
+          email: user.email ?? "",
+          full_name: `${empRecord.first_name || ""} ${empRecord.last_name || ""}`.trim() || "Employee",
+          organization_id: empRecord.organization_id,
+          is_active: true,
+        });
+
+        const { data: roleRow } = await admin
+          .from("roles")
+          .select("id")
+          .eq("code", "employee")
+          .eq("is_system", true)
+          .maybeSingle();
+
+        const empRoleId = roleRow?.id || "00000005-0000-0000-0000-000000000004";
+        await admin.from("user_roles").upsert(
+          {
+            profile_id: user.id,
+            organization_id: empRecord.organization_id,
+            role_id: empRoleId,
+            is_active: true,
+          },
+          { onConflict: "organization_id,profile_id,role_id" }
+        );
+
+        roleAssignments.push({
+          organizationId: empRecord.organization_id,
+          roleCode: "employee",
+          isActive: true,
+          roleIsActive: true,
+          expiresAt: null,
+        });
+      }
+    } catch (healErr) {
+      console.warn("[session] Failed auto-healing employee role assignment:", healErr);
+    }
   }
 
   // A role row without a profile row is not a usable membership, even if a
@@ -356,7 +442,7 @@ export const getCurrentUserContext = cache(async function getCurrentUserContext(
     linkedEmployee,
     isAccountActive: profile.isActive,
   };
-});
+}
 
 async function requireActiveSessionContextFor(
   loginDestination?: string,

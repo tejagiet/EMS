@@ -165,13 +165,15 @@ BEGIN
           USING ERRCODE = 'check_violation';
       END IF;
     END IF;
+    RETURN NEW;
   ELSIF TG_OP = 'DELETE' THEN
     IF OLD.is_locked = true OR OLD.status = 'approved' THEN
       RAISE EXCEPTION 'Approved or locked payroll runs cannot be deleted.'
         USING ERRCODE = 'check_violation';
     END IF;
+    RETURN OLD;
   END IF;
-  RETURN NEW;
+  RETURN OLD;
 END;
 $$;
 
@@ -195,6 +197,10 @@ BEGIN
   IF v_is_locked = true THEN
     RAISE EXCEPTION 'Payroll records belonging to locked/approved payroll runs cannot be modified or removed.'
       USING ERRCODE = 'check_violation';
+  END IF;
+  
+  IF TG_OP = 'DELETE' THEN
+    RETURN OLD;
   END IF;
   RETURN NEW;
 END;

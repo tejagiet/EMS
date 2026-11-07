@@ -12,14 +12,28 @@ export const metadata = {
 };
 
 export default async function ManagerApprovalsPage() {
-  const context = await verifyPortalAccess("manager");
+  const context = await verifyPortalAccess("manager", {
+    allowRoles: ["org_admin", "hr_manager"],
+    permission: "leave.approve",
+  });
   const orgId = context.activeOrganization?.id ?? "";
-  const managerEmployeeId = context.linkedEmployee?.id ?? null;
 
-  const [pendingLeaves, pendingCorrections] = await Promise.all([
-    getTeamLeaveRequests(orgId, managerEmployeeId, "pending"),
-    getAttendanceCorrectionsList(orgId, managerEmployeeId, "pending"),
+  // Administrators (org_admin, hr_manager, super_admin) have global oversight
+  // over all organization leave applications and timesheet adjustments.
+  const isGlobalApprover =
+    context.activeRole === "org_admin" ||
+    context.activeRole === "hr_manager" ||
+    context.activeRole === "super_admin";
+
+  const managerEmployeeId = isGlobalApprover ? null : (context.linkedEmployee?.id ?? null);
+
+  const [allLeaves, allCorrections] = await Promise.all([
+    getTeamLeaveRequests(orgId, managerEmployeeId),
+    getAttendanceCorrectionsList(orgId, managerEmployeeId),
   ]);
+
+  const pendingLeavesCount = allLeaves.filter((r) => r.status === "pending").length;
+  const pendingCorrectionsCount = allCorrections.filter((c) => c.status === "pending").length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -35,19 +49,19 @@ export default async function ManagerApprovalsPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 16 }}>
         <MetricCard
           label="Leave Requests Pending"
-          value={pendingLeaves.length}
+          value={pendingLeavesCount}
           subtitle="Casual, Sick, & Privilege leaves"
           icon={<Calendar size={20} color="#f59e0b" />}
         />
         <MetricCard
           label="Timesheet Corrections"
-          value={pendingCorrections.length}
+          value={pendingCorrectionsCount}
           subtitle="Missed punch adjustments"
           icon={<Clock size={20} color="#3b82f6" />}
         />
         <MetricCard
           label="Total Action Items"
-          value={pendingLeaves.length + pendingCorrections.length}
+          value={pendingLeavesCount + pendingCorrectionsCount}
           subtitle="Awaiting manager sign-off"
           icon={<CheckSquare size={20} color="#10b981" />}
         />
@@ -64,7 +78,7 @@ export default async function ManagerApprovalsPage() {
         </CardHeader>
         <CardContent>
           <LeaveRequestsQueueClient
-            initialRequests={pendingLeaves}
+            initialRequests={allLeaves}
             isManager={true}
           />
         </CardContent>
@@ -81,7 +95,7 @@ export default async function ManagerApprovalsPage() {
         </CardHeader>
         <CardContent>
           <CorrectionsQueueClient
-            initialCorrections={pendingCorrections}
+            initialCorrections={allCorrections}
           />
         </CardContent>
       </Card>

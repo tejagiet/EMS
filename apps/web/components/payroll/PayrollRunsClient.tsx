@@ -28,9 +28,11 @@ import {
 
 interface PayrollRunsClientProps {
   runs: PayrollRun[];
+  canWrite: boolean;
+  canApprove: boolean;
 }
 
-export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
+export function PayrollRunsClient({ runs, canWrite, canApprove }: PayrollRunsClientProps) {
   // Run creation modal
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [title, setTitle] = useState("October 2026 Monthly Payroll");
@@ -70,6 +72,7 @@ export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
 
   const handleCreateRun = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) return;
     setCreating(true);
     setCreateError("");
 
@@ -107,6 +110,8 @@ export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
 
   const handleExecuteDecision = async () => {
     if (!selectedRun || !decisionAction) return;
+    const requiresApproval = decisionAction === "approve" || decisionAction === "reject";
+    if ((requiresApproval && !canApprove) || (!requiresApproval && !canWrite)) return;
     setProcessingDecision(true);
     setDecisionError("");
 
@@ -255,9 +260,11 @@ export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
             Monthly payroll calculation batches, multi-level approvals, and immutable locking.
           </p>
         </div>
-        <Button variant="primary" onClick={openCreate} leftIcon={<Plus size={16} />}>
-          Initiate Payroll Run
-        </Button>
+        {canWrite && (
+          <Button variant="primary" onClick={openCreate} leftIcon={<Plus size={16} />}>
+            Initiate Payroll Run
+          </Button>
+        )}
       </div>
 
       <DataTable
@@ -265,16 +272,21 @@ export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
         data={runs}
         keyExtractor={(item) => item.id}
         emptyTitle="No Payroll Runs Created"
-        emptyDescription="Click 'Initiate Payroll Run' to calculate compensation for eligible active employees."
+         emptyDescription={
+           canWrite
+             ? "Click 'Initiate Payroll Run' to calculate compensation for eligible active employees."
+             : "No payroll runs are available for this organization."
+         }
       />
 
       {/* Create Run Modal */}
-      <Modal
-        isOpen={createModalOpen}
-        onClose={() => { setCreateModalOpen(false); }}
-        title="Initiate New Payroll Run"
-        maxWidth="540px"
-      >
+      {canWrite && (
+        <Modal
+          isOpen={createModalOpen}
+          onClose={() => { setCreateModalOpen(false); }}
+          title="Initiate New Payroll Run"
+          maxWidth="540px"
+        >
         <form onSubmit={handleCreateRun} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {createError && (
             <div
@@ -347,7 +359,8 @@ export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
             </Button>
           </div>
         </form>
-      </Modal>
+        </Modal>
+      )}
 
       {/* Inspect Run Modal */}
       {selectedRun && (
@@ -450,14 +463,16 @@ export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
               }}
             >
               <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
-                {selectedRun.isLocked
+                 {!canWrite && !canApprove
+                   ? "Read-only payroll access."
+                   : selectedRun.isLocked
                   ? "Run is locked. Approved figures cannot be edited."
                   : selectedRun.status === "pending_approval"
                   ? "Awaiting supervisory approval."
                   : "Draft mode: Submit for approval once reviewed."}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                {selectedRun.status === "draft" && (
+                {canWrite && selectedRun.status === "draft" && (
                   <Button
                     size="sm"
                     variant="primary"
@@ -468,7 +483,7 @@ export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
                   </Button>
                 )}
 
-                {selectedRun.status === "pending_approval" && (
+                {canApprove && selectedRun.status === "pending_approval" && (
                   <>
                     <Button
                       size="sm"
@@ -489,7 +504,7 @@ export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
                   </>
                 )}
 
-                {selectedRun.status === "approved" && (
+                {canWrite && selectedRun.status === "approved" && (
                   <Button
                     size="sm"
                     variant="secondary"
@@ -603,7 +618,7 @@ export function PayrollRunsClient({ runs }: PayrollRunsClientProps) {
       )}
 
       {/* Decision Confirmation Dialog */}
-      {decisionAction && (
+      {decisionAction && (canWrite || canApprove) && (
         <ConfirmDialog
           isOpen={Boolean(decisionAction)}
           title={`Confirm Action: ${decisionAction.toUpperCase()}`}

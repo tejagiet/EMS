@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import { escapeCsvField } from "./employees";
 import type {
   SalaryStructure,
@@ -175,7 +176,7 @@ export async function upsertSalaryStructure(
     createdBy?: string | undefined;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   if (payload.id) {
     const { error } = await supabase
@@ -551,7 +552,7 @@ export async function processPayrollRunDecision(
   actorId: string,
   notes?: string
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("process_payroll_run_decision", {
     p_run_id: runId,

@@ -17,6 +17,8 @@ export const metadata = {
 export default async function FinancePayrollDashboard() {
   const context = await verifyPortalAccess("finance_payroll_manager");
   const orgId = context.activeOrganization?.id ?? "";
+  const canWrite = context.permissions.includes("payroll.write");
+  const canApprove = context.permissions.includes("payroll.approve");
 
   const [analytics, runs, structures, empResult] = await Promise.all([
     getFinancePayrollAnalytics(orgId),
@@ -98,7 +100,7 @@ export default async function FinancePayrollDashboard() {
           </div>
         </CardHeader>
         <CardContent>
-          <PayrollRunsClient runs={runs} />
+          <PayrollRunsClient runs={runs} canWrite={canWrite} canApprove={canApprove} />
         </CardContent>
       </Card>
 

@@ -10,7 +10,10 @@ export const metadata = {
 };
 
 export default async function ItAssetsInventoryPage() {
-  const context = await verifyPortalAccess("it_assets_manager");
+  const context = await verifyPortalAccess("it_assets_manager", {
+    allowRoles: ["org_admin"],
+    permission: "asset.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const supabase = await createClient();

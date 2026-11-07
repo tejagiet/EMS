@@ -130,13 +130,12 @@ export function MetricCard({
       <div
         style={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 6,
+          flexDirection: "column",
+          gap: 4,
+          marginTop: 4,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
           {trend && (
             <span
               className={`badge ${
@@ -146,7 +145,7 @@ export function MetricCard({
                     ? "badge-success"
                     : "badge-danger"
               }`}
-              style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 2, fontSize: "0.72rem" }}
             >
               {trend.direction === "up" && <ArrowUpRight size={12} />}
               {trend.direction === "down" && <ArrowDownRight size={12} />}
@@ -161,24 +160,25 @@ export function MetricCard({
             </span>
           )}
 
-          {subtitle && !comparisonPeriod && <span className="metric-subtext">{subtitle}</span>}
+          {drillDownHref && (
+            <Link
+              href={drillDownHref}
+              style={{
+                fontSize: "0.78rem",
+                color: "var(--primary)",
+                fontWeight: 600,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 2,
+                marginLeft: "auto",
+              }}
+            >
+              Details <ChevronRight size={14} />
+            </Link>
+          )}
         </div>
 
-        {drillDownHref && (
-          <Link
-            href={drillDownHref}
-            style={{
-              fontSize: "0.78rem",
-              color: "var(--primary)",
-              fontWeight: 600,
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 2,
-            }}
-          >
-            Details <ChevronRight size={14} />
-          </Link>
-        )}
+        {subtitle && <span className="metric-subtext" style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{subtitle}</span>}
       </div>
     </div>
   );

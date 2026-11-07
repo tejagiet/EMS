@@ -3,6 +3,7 @@
 import { Bell, CheckCheck, Clock, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
+import { useRealtime } from "@/src/context/RealtimeContext";
 
 export interface NotificationItem {
   id: string;
@@ -23,6 +24,26 @@ export function NotificationPanel({
 }: NotificationPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>(initialNotifications);
+
+  useRealtime({
+    onUpdate: (event) => {
+      if (event.message) {
+        setNotifications((prev) => [
+          {
+            id: `live-${Date.now()}-${Math.random()}`,
+            title: event.table
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (c) => c.toUpperCase()),
+            message: event.message || "Status updated in real-time.",
+            timestamp: "Just now",
+            isRead: false,
+            type: "info",
+          },
+          ...prev,
+        ]);
+      }
+    },
+  });
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 

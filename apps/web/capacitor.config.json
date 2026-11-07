@@ -1,0 +1,12 @@
+{
+  "appId": "com.giet.ems",
+  "appName": "GIET EMS",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

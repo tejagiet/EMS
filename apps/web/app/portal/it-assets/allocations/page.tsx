@@ -11,7 +11,9 @@ export const metadata = {
 };
 
 export default async function ItAssetsAllocationsPage() {
-  const context = await verifyPortalAccess("it_assets_manager");
+  const context = await verifyPortalAccess("it_assets_manager", {
+    permission: "asset.manage",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const supabase = await createClient();

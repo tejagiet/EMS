@@ -1,4 +1,4 @@
-import { InstitutionalFooter, InstitutionalHeader } from "@/components/ui/InstitutionalHeader";
+import { InstitutionalFooter } from "@/components/ui/InstitutionalHeader";
 import { INSTITUTIONAL_METADATA } from "@ems/ui";
 import { ArrowLeft, Database, Layers, Shield } from "lucide-react";
 import Link from "next/link";
@@ -8,11 +8,9 @@ export const metadata = {
   title: "About EMS | Project Information",
 };
 
-export default function AboutPage() {
+export default function AboutPage(): React.JSX.Element {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <InstitutionalHeader />
-
       <main
         style={{ flex: 1, maxWidth: 900, margin: "0 auto", padding: "40px 20px", width: "100%" }}
       >

@@ -2,20 +2,31 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "ES2022"],
+    "target": "ES2020",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "jsx": "preserve",
+    "jsx": "react-jsx",
     "allowJs": true,
-    "outDir": "./.next",
+    "declaration": false,
+    "declarationMap": false,
+    "composite": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "types": ["vite/client", "node"],
+    "outDir": "./dist",
     "rootDir": ".",
     "noEmit": true,
-    "plugins": [{ "name": "next" }],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "next/navigation": ["./lib/next-compat/navigation.ts"],
+      "next/link": ["./lib/next-compat/link.tsx"],
+      "next/cache": ["./lib/next-compat/cache.ts"],
+      "next/headers": ["./lib/next-compat/headers.ts"],
+      "next/server": ["./lib/next-compat/server.ts"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", ".next", "out"]
+  "include": ["src/**/*", "app/**/*", "components/**/*", "lib/**/*"],
+  "exclude": ["node_modules", "dist", ".next", "out"]
 }

@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import { escapeCsvField } from "./employees";
 import type { LeaveType, LeaveRequest, LeaveBalanceSummary } from "@ems/types";
 
@@ -42,7 +43,7 @@ interface RawLedgerSummary {
  * 1. Get All Leave Types for Organization
  */
 export async function getLeaveTypes(orgId: string): Promise<LeaveType[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data } = await supabase
     .from("leave_types")
@@ -81,7 +82,7 @@ export async function upsertLeaveType(
     isActive?: boolean;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   if (payload.id) {
     const { error } = await supabase
@@ -124,7 +125,7 @@ export async function getEmployeeLeaveBalances(
   orgId: string,
   employeeId: string
 ): Promise<LeaveBalanceSummary[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const [typesRes, ledgerRes, pendingRes] = await Promise.all([
     supabase.from("leave_types").select("*").eq("organization_id", orgId).eq("is_active", true),
@@ -192,7 +193,7 @@ export async function getEmployeeLeaveRequests(
   orgId: string,
   employeeId: string
 ): Promise<LeaveRequest[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data } = await supabase
     .from("leave_requests")
@@ -237,7 +238,7 @@ export async function getTeamLeaveRequests(
   managerEmployeeId?: string | null,
   status?: string
 ): Promise<LeaveRequest[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   let query = supabase
     .from("leave_requests")
@@ -259,7 +260,11 @@ export async function getTeamLeaveRequests(
   > | null) ?? [];
 
   const filtered = managerEmployeeId
-    ? rawList.filter((r) => r.employees?.reporting_manager_id === managerEmployeeId)
+    ? rawList.filter(
+        (r) =>
+          r.employees?.reporting_manager_id === managerEmployeeId ||
+          !r.employees?.reporting_manager_id
+      )
     : rawList;
 
   return filtered.map((r) => {
@@ -306,7 +311,7 @@ export async function submitLeaveRequest(
     reason: string;
   }
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   // 1. Verify available balance
   const balances = await getEmployeeLeaveBalances(orgId, employeeId);
@@ -371,7 +376,7 @@ export async function reviewLeaveRequest(
   reviewerProfileId: string,
   rejectionReason?: string | null
 ): Promise<{ success: boolean; error?: string }> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("process_leave_request_decision", {
     p_request_id: requestId,

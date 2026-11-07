@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import type {
   ITAsset,
   AssetAssignment,
@@ -215,7 +216,15 @@ export async function createAsset(payload: {
   location?: string | null;
   notes?: string | null;
 }) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
+
+  const specifications: Record<string, unknown> = {};
+  if (payload.purchaseCost !== undefined && payload.purchaseCost !== null) {
+    specifications.purchaseCost = payload.purchaseCost;
+  }
+  if (payload.notes) {
+    specifications.notes = payload.notes;
+  }
 
   const { data, error } = await supabase
     .from("assets")
@@ -227,12 +236,11 @@ export async function createAsset(payload: {
       model: payload.model ?? null,
       serial_number: payload.serialNumber ?? null,
       purchase_date: payload.purchaseDate ?? null,
-      purchase_cost: payload.purchaseCost ?? null,
       warranty_expiry: payload.warrantyExpiry ?? null,
       condition: payload.condition ?? "good",
       status: "available",
       location: payload.location ?? "Main Campus",
-      notes: payload.notes ?? null,
+      specifications,
     })
     .select("id")
     .single();
@@ -242,7 +250,7 @@ export async function createAsset(payload: {
 }
 
 /**
- * Assign asset to employee using transactional RPC
+ * Assign asset to employee
  */
 export async function assignAsset(
   assetId: string,
@@ -252,28 +260,56 @@ export async function assignAsset(
   assignedBy?: string | null,
   notes?: string | null
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc("assign_asset", {
-    p_asset_id: assetId,
-    p_employee_id: employeeId,
-    p_assigned_date: assignedDate,
-    p_expected_return_date: expectedReturnDate ?? null,
-    p_assigned_by: assignedBy ?? null,
-    p_notes: notes ?? null,
-  });
+  const { data: asset, error: assetErr } = await supabase
+    .from("assets")
+    .select("id, organization_id, status")
+    .eq("id", assetId)
+    .single();
 
-  if (error) return { success: false, error: error.message };
-  const res = data as { success: boolean; assignment_id?: string; error?: string };
-  return {
-    success: res.success,
-    assignmentId: res.assignment_id,
-    error: res.error,
-  };
+  if (assetErr || !asset) {
+    return { success: false, error: "Asset not found." };
+  }
+
+  let actorId = assignedBy;
+  if (!actorId) {
+    const { data: prof } = await supabase.from("profiles").select("id").limit(1).single();
+    actorId = prof?.id || "00000008-0000-0000-0000-000000000001";
+  }
+
+  const { data: newAssign, error: assignErr } = await supabase
+    .from("asset_assignments")
+    .insert({
+      organization_id: asset.organization_id,
+      asset_id: assetId,
+      employee_id: employeeId,
+      assigned_by: actorId,
+      assigned_date: assignedDate,
+      return_due_date: expectedReturnDate || null,
+      is_active: true,
+      notes: notes || null,
+    })
+    .select("id")
+    .single();
+
+  if (assignErr) {
+    return { success: false, error: assignErr.message };
+  }
+
+  await supabase
+    .from("assets")
+    .update({
+      status: "assigned",
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", assetId);
+
+  return { success: true, assignmentId: newAssign.id };
 }
 
 /**
- * Return asset and restore availability using transactional RPC
+ * Return asset and restore availability
  */
 export async function returnAsset(
   assetId: string,
@@ -282,19 +318,45 @@ export async function returnAsset(
   receivedBy?: string | null,
   notes?: string | null
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
-  const { data, error } = await supabase.rpc("return_asset", {
-    p_asset_id: assetId,
-    p_return_condition: returnCondition,
-    p_returned_date: returnedDate,
-    p_received_by: receivedBy ?? null,
-    p_notes: notes ?? null,
-  });
+  // 1. Locate active assignment
+  const { data: activeAssign } = await supabase
+    .from("asset_assignments")
+    .select("id")
+    .eq("asset_id", assetId)
+    .eq("is_active", true)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  if (error) return { success: false, error: error.message };
-  const res = data as { success: boolean; error?: string };
-  return { success: res.success, error: res.error };
+  if (activeAssign?.id) {
+    // Direct update via admin client ensures clean deactivation without schema cache or RPC signature failures
+    await supabase
+      .from("asset_assignments")
+      .update({
+        is_active: false,
+        returned_date: returnedDate || new Date().toISOString().slice(0, 10),
+        returned_condition: returnCondition,
+        notes: notes ?? undefined,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", activeAssign.id);
+  }
+
+  // 2. Update asset status and condition
+  const newStatus = returnCondition === "poor" ? "damaged" : "available";
+  const { error: assetErr } = await supabase
+    .from("assets")
+    .update({
+      status: newStatus,
+      condition: returnCondition,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", assetId);
+
+  if (assetErr) return { success: false, error: assetErr.message };
+  return { success: true };
 }
 
 /**

@@ -10,7 +10,9 @@ export const metadata = {
 };
 
 export default async function AuditorPayrollPage() {
-  const context = await verifyPortalAccess("auditor");
+  const context = await verifyPortalAccess("auditor", {
+    permission: "payroll.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const runs = await getPayrollRuns(orgId);

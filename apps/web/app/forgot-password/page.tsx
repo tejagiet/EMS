@@ -3,7 +3,7 @@
 import { forgotPasswordAction } from "@/lib/auth/actions";
 import { type SyntheticEvent, useState, useTransition } from "react";
 
-export default function ForgotPasswordPage() {
+export default function ForgotPasswordPage(): React.JSX.Element {
   const [isPending, startTransition] = useTransition();
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);

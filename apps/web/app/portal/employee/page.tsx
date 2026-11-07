@@ -8,6 +8,7 @@ import { getAnnouncements } from "@/lib/data/announcements";
 import { getAssets } from "@/lib/data/assets";
 import { EmployeeSelfClient } from "@/components/attendance/EmployeeSelfClient";
 import { EmployeePayslipsClient } from "@/components/payroll/EmployeePayslipsClient";
+import { EmployeeSecurityCard } from "@/components/employees/EmployeeSecurityCard";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { MetricCard } from "@/components/ui/MetricCard";
@@ -362,6 +363,9 @@ export default async function EmployeeDashboard() {
             )}
           </CardContent>
         </Card>
+
+        {/* Portal Password & Credential Setup */}
+        <EmployeeSecurityCard workEmail={empDetails?.workEmail ?? context.email} />
 
         {/* Security & Access Statement */}
         <div

@@ -11,7 +11,9 @@ export const metadata = {
 };
 
 export default async function ShiftsPage() {
-  const context = await verifyPortalAccess("hr_manager");
+  const context = await verifyPortalAccess("hr_manager", {
+    permission: "attendance.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const [shifts, assignments, empRes] = await Promise.all([

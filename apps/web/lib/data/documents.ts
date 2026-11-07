@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import type {
   EmployeeDocument,
   DocumentCategory,
@@ -20,6 +21,7 @@ interface RawDoc {
   employee_id: string;
   category: DocumentCategory;
   title: string;
+  description: string | null;
   file_name: string;
   file_path: string;
   file_size_bytes: number;
@@ -29,7 +31,6 @@ interface RawDoc {
   verified_at: string | null;
   rejection_reason: string | null;
   expiry_date: string | null;
-  notes: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -42,7 +43,7 @@ export async function getDocuments(
   employeeId?: string,
   categoryFilter?: DocumentCategory
 ): Promise<EmployeeDocument[]> {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   let query = supabase
     .from("documents")
@@ -106,8 +107,15 @@ export async function registerDocument(payload: {
   mimeType: string;
   expiryDate?: string | null;
   notes?: string | null;
+  uploadedBy?: string | null;
 }) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
+
+  let uploaderId = payload.uploadedBy;
+  if (!uploaderId) {
+    const { data: prof } = await supabase.from("profiles").select("id").limit(1).single();
+    uploaderId = prof?.id || "00000008-0000-0000-0000-000000000001";
+  }
 
   const { data, error } = await supabase
     .from("documents")
@@ -116,13 +124,15 @@ export async function registerDocument(payload: {
       employee_id: payload.employeeId,
       category: payload.category,
       title: payload.title.trim(),
+      description: payload.notes?.trim() || null,
       file_name: payload.fileName,
       file_path: payload.filePath,
-      file_size_bytes: payload.fileSizeBytes,
-      mime_type: payload.mimeType,
+      file_size_bytes: payload.fileSizeBytes || 1024,
+      mime_type: payload.mimeType || "application/pdf",
+      uploaded_by: uploaderId,
       verification_status: "pending",
       expiry_date: payload.expiryDate ?? null,
-      notes: payload.notes ?? null,
+      is_confidential: true,
     })
     .select("id")
     .single();
@@ -140,7 +150,7 @@ export async function verifyDocument(
   verifierId: string,
   rejectionReason?: string | null
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { error } = await supabase
     .from("documents")

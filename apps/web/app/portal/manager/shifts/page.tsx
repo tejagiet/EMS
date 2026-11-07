@@ -10,7 +10,9 @@ export const metadata = {
 };
 
 export default async function ManagerShiftsPage() {
-  const context = await verifyPortalAccess("manager");
+  const context = await verifyPortalAccess("manager", {
+    permission: "attendance.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
   const managerEmployeeId = context.linkedEmployee?.id ?? null;
   const today = new Date().toISOString().split("T")[0]!;

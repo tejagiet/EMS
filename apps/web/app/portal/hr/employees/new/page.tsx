@@ -1,4 +1,4 @@
-import { getActiveSessionContext } from "@/lib/auth/session";
+import { verifyPortalAccess } from "@/lib/auth/session";
 import { getOrganizationMetadataOptions } from "@/lib/data/employees";
 import { EmployeeForm } from "@/components/employees/EmployeeForm";
 import { redirect } from "next/navigation";
@@ -8,14 +8,12 @@ export const metadata = {
 };
 
 export default async function NewEmployeePage() {
-  const context = await getActiveSessionContext();
+  const context = await verifyPortalAccess("hr_manager", {
+    allowRoles: ["org_admin"],
+    permission: "employee.write",
+  });
   if (!context || !context.activeOrganization) {
     redirect("/login");
-  }
-
-  const canWrite = context.permissions.includes("employee.write") || context.activeRole === "super_admin";
-  if (!canWrite) {
-    redirect("/unauthorized");
   }
 
   const metadata = await getOrganizationMetadataOptions(context.activeOrganization.id);

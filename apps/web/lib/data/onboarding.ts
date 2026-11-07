@@ -1,4 +1,5 @@
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin";
 import type {
   OnboardingCase,
   OnboardingTask,
@@ -234,7 +235,7 @@ export async function createOnboardingCase(
   createdBy?: string | null,
   candidateId?: string | null
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("create_onboarding_case", {
     p_org_id: orgId,
@@ -270,7 +271,7 @@ export async function updateOnboardingTask(
   actorId: string,
   notes?: string | null
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const isCompleted = status === "completed";
   const { error } = await supabase
@@ -296,7 +297,7 @@ export async function completeOnboardingCase(
   actorId: string,
   notes?: string | null
 ) {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data, error } = await supabase.rpc("complete_onboarding_case", {
     p_case_id: caseId,

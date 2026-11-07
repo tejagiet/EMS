@@ -28,7 +28,9 @@ export interface PayrollActionResult {
 export async function upsertSalaryStructureAction(
   formData: FormData
 ): Promise<PayrollActionResult> {
-  const context = await verifyPortalAccess("finance_payroll_manager");
+  const context = await verifyPortalAccess("finance_payroll_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.activeOrganization) {
     return { success: false, error: "Active organization context required." };
   }
@@ -106,7 +108,9 @@ export async function upsertSalaryStructureAction(
 export async function createPayrollRunAction(
   formData: FormData
 ): Promise<PayrollActionResult> {
-  const context = await verifyPortalAccess("finance_payroll_manager");
+  const context = await verifyPortalAccess("finance_payroll_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.activeOrganization || !context.profile) {
     return { success: false, error: "Active organization context required." };
   }
@@ -151,7 +155,9 @@ export async function createPayrollRunAction(
 export async function processPayrollDecisionAction(
   formData: FormData
 ): Promise<PayrollActionResult> {
-  const context = await verifyPortalAccess("finance_payroll_manager");
+  const context = await verifyPortalAccess("finance_payroll_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   if (!context.profile) {
     return { success: false, error: "Authenticated profile context required." };
   }
@@ -187,7 +193,9 @@ export async function processPayrollDecisionAction(
  * 4. Export Payroll Run CSV Action
  */
 export async function exportPayrollRunCsvAction(runId: string): Promise<string> {
-  await verifyPortalAccess("finance_payroll_manager");
+  await verifyPortalAccess("finance_payroll_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   return exportPayrollRunCsv(runId);
 }
 
@@ -195,6 +203,8 @@ export async function exportPayrollRunCsvAction(runId: string): Promise<string> 
  * 5. Get Payroll Run Details Action
  */
 export async function getPayrollRunDetailsAction(runId: string) {
-  await verifyPortalAccess("finance_payroll_manager");
+  await verifyPortalAccess("finance_payroll_manager", {
+    allowRoles: ["org_admin", "super_admin"],
+  });
   return getPayrollRunDetails(runId);
 }

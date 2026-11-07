@@ -1,4 +1,4 @@
-import { getActiveSessionContext } from "@/lib/auth/session";
+import { verifyPortalAccess } from "@/lib/auth/session";
 import { getAuditorAnalytics } from "@/lib/data/analytics";
 import { AuditorHistoryTable } from "@/app/portal/auditor/AuditorHistoryTable";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/Card";
@@ -10,18 +10,11 @@ export const metadata = {
 };
 
 export default async function OrgAdminAuditPage() {
-  const context = await getActiveSessionContext();
+  const context = await verifyPortalAccess("org_admin", {
+    permission: "audit.read",
+  });
   if (!context || !context.activeOrganization) {
     redirect("/login");
-  }
-
-  const canRead =
-    context.permissions.includes("audit.read") ||
-    context.activeRole === "super_admin" ||
-    context.activeRole === "org_admin";
-
-  if (!canRead) {
-    redirect("/unauthorized");
   }
 
   const data = await getAuditorAnalytics(context.activeOrganization.id);

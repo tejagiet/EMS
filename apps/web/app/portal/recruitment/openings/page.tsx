@@ -11,7 +11,10 @@ export const metadata = {
 };
 
 export default async function RecruitmentOpeningsPage() {
-  const context = await verifyPortalAccess("recruitment_manager");
+  const context = await verifyPortalAccess("recruitment_manager", {
+    allowRoles: ["org_admin"],
+    permission: "recruitment.read",
+  });
   const orgId = context.activeOrganization?.id ?? "";
 
   const [postings, depts, desigs] = await Promise.all([
