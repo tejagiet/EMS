@@ -28,6 +28,8 @@ target/
 src-tauri/target/
 .turbo/
 **/.turbo/
+.vercel/
+**/.vercel/
 .cache/
 **/.cache/
 *.tsbuildinfo
