@@ -167,8 +167,6 @@ export const ROLE_PERMISSIONS_MATRIX: Record<PortalRole, readonly PermissionCode
     "leave.read",
     "leave.approve",
     "payroll.read",
-    "payroll.write",
-    "payroll.approve",
     "recruitment.read",
     "recruitment.write",
     "asset.read",
