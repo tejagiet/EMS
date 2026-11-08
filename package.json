@@ -14,7 +14,7 @@
     "dev:mobile": "pnpm --filter @ems/mobile dev",
     "dev:desktop": "pnpm --filter @ems/desktop dev",
     "build": "pnpm -r build",
-    "build:web": "pnpm --filter @ems/web build",
+    "build:web": "pnpm --filter @ems/web... build",
     "build:mobile": "pnpm --filter @ems/mobile build",
     "build:desktop": "pnpm --filter @ems/desktop build",
     "lint": "pnpm -r lint",
