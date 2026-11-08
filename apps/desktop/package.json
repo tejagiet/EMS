@@ -26,6 +26,8 @@
       "main.js",
       "preload.js",
       "connecting.html",
+      "splash.html",
+      "web-dist/**/*",
       "logo.jpg",
       "icon.png",
       "icon.ico"

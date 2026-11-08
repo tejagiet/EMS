@@ -1,30 +1,120 @@
 const { app, BrowserWindow, shell, Menu, ipcMain } = require("electron");
 const path = require("path");
+const http = require("http");
+const fs = require("fs");
 
 const APP_TITLE = "Employee Management System (EMS) - GIET Polytechnic College";
-let currentServerUrl = process.env.EMS_WEB_URL || "http://localhost:3000";
-let mainWindow = null;
+const WEB_DIST_DIR = path.join(__dirname, "web-dist");
 
-// IPC handlers
+let internalServer = null;
+let internalPort = null;
+let mainWindow = null;
+let splashHandled = false;
+
+const MIME_TYPES = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".mjs": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".map": "application/json",
+};
+
+/**
+ * Starts an embedded local HTTP server in the main process to serve bundled web assets.
+ * Handles client-side SPA routing by falling back to index.html.
+ */
+function startEmbeddedServer() {
+  return new Promise((resolve, reject) => {
+    internalServer = http.createServer((req, res) => {
+      try {
+        const parsedUrl = new URL(req.url, `http://127.0.0.1:${internalPort || 3000}`);
+        let filePath = path.join(WEB_DIST_DIR, decodeURIComponent(parsedUrl.pathname));
+
+        // Prevent directory traversal
+        if (!filePath.startsWith(WEB_DIST_DIR)) {
+          res.writeHead(403);
+          res.end("Forbidden");
+          return;
+        }
+
+        fs.stat(filePath, (err, stats) => {
+          if (!err && stats.isFile()) {
+            const ext = path.extname(filePath).toLowerCase();
+            const mime = MIME_TYPES[ext] || "application/octet-stream";
+            res.writeHead(200, { "Content-Type": mime });
+            fs.createReadStream(filePath).pipe(res);
+          } else {
+            // SPA fallback: return index.html for all client routes (/login, /portal, etc.)
+            const indexPath = path.join(WEB_DIST_DIR, "index.html");
+            fs.readFile(indexPath, (readErr, content) => {
+              if (readErr) {
+                res.writeHead(404, { "Content-Type": "text/plain" });
+                res.end("EMS bundle not found. Please verify application package.");
+              } else {
+                res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+                res.end(content);
+              }
+            });
+          }
+        });
+      } catch (e) {
+        res.writeHead(500, { "Content-Type": "text/plain" });
+        res.end("Internal Application Error");
+      }
+    });
+
+    // Listen on 127.0.0.1 with ephemeral random port
+    internalServer.listen(0, "127.0.0.1", () => {
+      internalPort = internalServer.address().port;
+      resolve(internalPort);
+    });
+
+    internalServer.on("error", (err) => {
+      reject(err);
+    });
+  });
+}
+
+function getAppLoginUrl() {
+  return `http://127.0.0.1:${internalPort}/login`;
+}
+
+function navigateToLogin() {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.loadURL(getAppLoginUrl()).catch(() => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.loadFile(path.join(__dirname, "connecting.html"));
+    }
+  });
+}
+
+// IPC Handlers
 ipcMain.on("ems:navigate", (event, url) => {
   if (mainWindow && url) {
-    currentServerUrl = url;
     mainWindow.loadURL(url).catch(() => {
       mainWindow.loadFile(path.join(__dirname, "connecting.html"));
     });
   }
 });
 
-ipcMain.handle("ems:get-server-url", () => {
-  return currentServerUrl;
+ipcMain.on("ems:splash-ready", () => {
+  if (splashHandled) return;
+  splashHandled = true;
+  navigateToLogin();
 });
 
-ipcMain.handle("ems:set-server-url", (event, url) => {
-  if (url) {
-    currentServerUrl = url;
-    return true;
-  }
-  return false;
+ipcMain.handle("ems:get-server-url", () => {
+  return `http://127.0.0.1:${internalPort}`;
 });
 
 function createWindow() {
@@ -44,28 +134,33 @@ function createWindow() {
     show: false,
   });
 
-  // Native Windows Menu
+  // Native Application Menu
   const template = [
     {
-      label: "File",
+      label: "Application",
       submenu: [
         {
-          label: "Reload Portal",
+          label: "Reload Application",
           accelerator: "CmdOrCtrl+R",
           click: () => mainWindow && mainWindow.reload(),
         },
         {
-          label: "Portal Home",
-          accelerator: "CmdOrCtrl+H",
-          click: () => mainWindow && mainWindow.loadURL(`${currentServerUrl}/portal`),
+          label: "Login Screen",
+          accelerator: "CmdOrCtrl+L",
+          click: () => navigateToLogin(),
         },
         {
-          label: "Connection Settings",
-          click: () => mainWindow && mainWindow.loadFile(path.join(__dirname, "connecting.html")),
+          label: "Portal Home",
+          accelerator: "CmdOrCtrl+H",
+          click: () => {
+            if (mainWindow) {
+              mainWindow.loadURL(`http://127.0.0.1:${internalPort}/portal`);
+            }
+          },
         },
         { type: "separator" },
         {
-          label: "Exit",
+          label: "Exit EMS",
           accelerator: "CmdOrCtrl+Q",
           click: () => app.quit(),
         },
@@ -90,10 +185,10 @@ function createWindow() {
       label: "Help",
       submenu: [
         {
-          label: "About EMS",
+          label: "About GIET EMS",
           click: () => {
             if (mainWindow) {
-              mainWindow.loadURL(`${currentServerUrl}/about`);
+              mainWindow.loadURL(`http://127.0.0.1:${internalPort}/about`);
             }
           },
         },
@@ -104,30 +199,27 @@ function createWindow() {
   const menu = Menu.buildFromTemplate(template);
   Menu.setApplicationMenu(menu);
 
-  // If loading fails, load the fallback connecting page
-  mainWindow.webContents.on("did-fail-load", (event, errorCode, errorDescription, validatedURL) => {
-    // Error code -3 is ABORTED (e.g. user navigation before page finished loading)
-    if (errorCode === -3) return;
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.loadFile(path.join(__dirname, "connecting.html"));
-    }
-  });
-
-  // Attempt to load the portal
-  mainWindow.loadURL(currentServerUrl).catch(() => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.loadFile(path.join(__dirname, "connecting.html"));
-    }
+  // Load opening splash animation first
+  mainWindow.loadFile(path.join(__dirname, "splash.html")).catch(() => {
+    navigateToLogin();
   });
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
   });
 
+  // Safety fallback: transition to login after 2.2 seconds if splash event was missed
+  setTimeout(() => {
+    if (!splashHandled) {
+      splashHandled = true;
+      navigateToLogin();
+    }
+  }, 2200);
+
   // Open external links in default OS browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith("http:") || url.startsWith("https:")) {
-      if (!url.startsWith(currentServerUrl)) {
+      if (!url.startsWith(`http://127.0.0.1:${internalPort}`)) {
         shell.openExternal(url);
         return { action: "deny" };
       }
@@ -152,9 +244,20 @@ if (!gotTheLock) {
     }
   });
 
-  app.whenReady().then(createWindow);
+  app.whenReady().then(async () => {
+    try {
+      await startEmbeddedServer();
+      createWindow();
+    } catch (err) {
+      console.error("Failed to start embedded application server:", err);
+      createWindow();
+    }
+  });
 
   app.on("window-all-closed", () => {
+    if (internalServer) {
+      internalServer.close();
+    }
     if (process.platform !== "darwin") {
       app.quit();
     }

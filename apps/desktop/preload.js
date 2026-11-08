@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("emsDesktop", {
   platform: process.platform,
   version: "1.0.0",
   navigate: (url) => ipcRenderer.send("ems:navigate", url),
+  onSplashReady: () => ipcRenderer.send("ems:splash-ready"),
   getServerUrl: () => ipcRenderer.invoke("ems:get-server-url"),
   setServerUrl: (url) => ipcRenderer.invoke("ems:set-server-url", url),
 });

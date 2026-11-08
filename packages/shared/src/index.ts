@@ -99,3 +99,10 @@ export function formatAuthErrorMessage(error: unknown): string {
   }
   return "An unexpected error occurred.";
 }
+
+// =============================================================================
+// 4. GIET AI Agent Core
+// =============================================================================
+
+export * from "./agents/giet-agent";
+

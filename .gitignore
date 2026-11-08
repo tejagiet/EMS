@@ -1,68 +1,116 @@
+# =============================================================================
+# GIET POLYTECHNIC COLLEGE - EMPLOYEE MANAGEMENT SYSTEM (EMS)
+# Monorepo .gitignore - Optimized for GitHub (< 100 MB Strict Limit)
+# =============================================================================
+
 # ── Dependencies ─────────────────────────────────────────────────────────────
 node_modules/
+**/node_modules/
 .pnp
 .pnp.js
 
-# ── Build outputs ─────────────────────────────────────────────────────────────
+# ── Monorepo Build Outputs & Distribution ────────────────────────────────────
 dist/
+**/dist/
 build/
+**/build/
 out/
+**/out/
+web-dist/
+**/web-dist/
 .next/
+**/.next/
 .expo/
+**/.expo/
 .expo-shared/
-target/          # Rust/Tauri build artifacts
+**/.expo-shared/
+target/
 src-tauri/target/
-*.tsbuildinfo
 .turbo/
+**/.turbo/
+.cache/
+**/.cache/
+*.tsbuildinfo
 
-# ── Environment & credentials ─────────────────────────────────────────────────
+# ── Large Binary Files & Packages (GitHub 100MB Block Rule) ──────────────────
+*.apk
+*.aab
+*.exe
+*.msi
+*.dmg
+*.pkg
+*.deb
+*.rpm
+*.iso
+*.bin
+*.so
+*.dex
+*.pack
+*.pack.old
+*.pack.gz
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+
+# ── Android & Gradle Specific Artifacts ──────────────────────────────────────
+.gradle/
+**/.gradle/
+**/android/app/build/
+**/android/build/
+**/android/.gradle/
+local.properties
+*.iml
+.idea/
+
+# ── Mobile Keystores & Credentials ───────────────────────────────────────────
+*.jks
+*.keystore
+*.p8
+*.p12
+*.key
+*.pem
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+secrets/
+
+# ── Environment & Secrets ────────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
 .env.development.local
 .env.test.local
 .env.production.local
-*.pem
-*.key
-secrets/
+!.env.example
 
-# ── Editor & OS artefacts ─────────────────────────────────────────────────────
+# ── System & OS Files ─────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-.idea/
-.vscode/settings.json
+Desktop.ini
+*.swp
+*.swo
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
-*.sw?
+.vscode/*
+!.vscode/extensions.json
 
-# ── Test coverage ─────────────────────────────────────────────────────────────
-coverage/
-.nyc_output/
-
-# ── Logs ─────────────────────────────────────────────────────────────────────
+# ── Logs & Debugging ─────────────────────────────────────────────────────────
 *.log
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# ── Supabase generated ────────────────────────────────────────────────────────
+# ── Test Coverage ────────────────────────────────────────────────────────────
+coverage/
+**/coverage/
+.nyc_output/
+
+# ── Supabase Generated ───────────────────────────────────────────────────────
 supabase/.branches/
 supabase/.temp/
-
-# ── Expo / React Native ───────────────────────────────────────────────────────
-.expo/
-android/
-ios/
-*.jks
-*.p8
-*.p12
-*.mobileprovision
-google-services.json
-GoogleService-Info.plist
-
-# ── Misc generated ────────────────────────────────────────────────────────────
-*.tgz
-.cache/

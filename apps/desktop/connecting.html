@@ -218,14 +218,18 @@
         await fetch(url, { method: "HEAD", mode: "no-cors", signal: controller.signal });
         clearTimeout(timeout);
 
-        statusText.innerText = "Connected! Opening portal...";
+        statusText.innerText = "Connected! Opening login screen...";
         localStorage.setItem("ems_portal_url", url);
         
+        const destination = (url.endsWith("/login") || url.includes("/portal")) 
+          ? url 
+          : url.replace(/\/$/, "") + "/login";
+
         setTimeout(() => {
           if (window.emsDesktop && window.emsDesktop.navigate) {
-            window.emsDesktop.navigate(url);
+            window.emsDesktop.navigate(destination);
           } else {
-            window.location.href = url;
+            window.location.href = destination;
           }
         }, 300);
       } catch (err) {
