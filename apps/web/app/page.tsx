@@ -147,6 +147,7 @@ export default function HomePage() {
             <a href="#portals">Portals</a>
             <a href="#architecture">Architecture</a>
             <Link href="/about">About</Link>
+            <Link href="/downloads" style={{ fontWeight: 600, color: "#2563eb" }}>Windows App</Link>
           </nav>
 
           <Link className="btn btn-primary landing-nav-cta" href="/login">
@@ -175,6 +176,14 @@ export default function HomePage() {
                 <Link className="btn btn-primary btn-lg" href="/login">
                   Sign in to EMS <ArrowRight size={18} aria-hidden="true" />
                 </Link>
+                <a
+                  className="btn btn-secondary btn-lg"
+                  href="/downloads/EMS-Desktop-Setup.exe"
+                  download="EMS-Desktop-Setup.exe"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 8 }}
+                >
+                  Download Windows (.exe) <ArrowRight size={18} aria-hidden="true" />
+                </a>
                 <Link className="btn btn-secondary btn-lg" href="/about">
                   Explore project <ArrowRight size={18} aria-hidden="true" />
                 </Link>

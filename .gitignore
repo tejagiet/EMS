@@ -36,6 +36,7 @@ src-tauri/target/
 *.apk
 *.aab
 *.exe
+!apps/web/public/downloads/*.exe
 *.msi
 *.dmg
 *.pkg

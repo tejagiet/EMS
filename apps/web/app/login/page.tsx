@@ -51,6 +51,13 @@ export default async function LoginPage({ searchParams }: LoginPageProps): Promi
           initialError={initialError}
           redirectTo={params.redirectTo}
         />
+
+        <div style={{ marginTop: 24, textAlign: "center", fontSize: "0.85rem", color: "#64748b" }}>
+          Prefer the desktop application?{" "}
+          <a href="/downloads" style={{ color: "#2563eb", fontWeight: 600, textDecoration: "none" }}>
+            Download for Windows (.exe)
+          </a>
+        </div>
       </div>
     </main>
   );

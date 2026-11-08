@@ -22,20 +22,22 @@
     "directories": {
       "output": "dist"
     },
+    "afterPack": "./scripts/afterPack.js",
     "files": [
       "main.js",
       "preload.js",
       "connecting.html",
       "splash.html",
       "web-dist/**/*",
+      "!web-dist/**/*.map",
       "logo.jpg",
       "icon.png",
       "icon.ico"
     ],
+    "compression": "maximum",
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ],
       "icon": "icon.ico",
       "legalTrademarks": "GIET Polytechnic College (GIETP-AI-IT-EMS-T1-2026)"
@@ -45,7 +47,8 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "EMS Desktop"
+      "shortcutName": "EMS Desktop",
+      "artifactName": "EMS-Desktop-Setup-${version}.${ext}"
     }
   },
   "dependencies": {

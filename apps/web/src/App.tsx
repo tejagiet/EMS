@@ -28,6 +28,14 @@ export function App() {
           />
           <Route path="/about" element={<AsyncPage loader={() => import("@/app/about/page")} />} />
           <Route
+            path="/downloads"
+            element={<AsyncPage loader={() => import("@/app/downloads/page")} />}
+          />
+          <Route
+            path="/download"
+            element={<AsyncPage loader={() => import("@/app/downloads/page")} />}
+          />
+          <Route
             path="/access-pending"
             element={<AsyncPage loader={() => import("@/app/unauthorized/page")} />}
           />
